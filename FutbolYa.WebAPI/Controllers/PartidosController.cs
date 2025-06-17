@@ -45,9 +45,6 @@ namespace FutbolYa.WebAPI.Controllers
         }
 
 
-
-
-
         // GET: api/partidos/buscar?ubicacion=Pilar&fecha=2025-06-02
         [HttpGet("buscar")]
         public async Task<IActionResult> Buscar([FromQuery] string? ubicacion, [FromQuery] DateTime? fecha)
@@ -77,6 +74,9 @@ namespace FutbolYa.WebAPI.Controllers
 
             if (partido == null || usuario == null)
                 return NotFound("Partido o usuario no encontrado");
+
+            if (partido.Jugadores.Any(j => j.Id == usuarioId))
+                return BadRequest("El usuario ya está inscrito en este partido");
 
             partido.Jugadores.Add(usuario);
             await _context.SaveChangesAsync();
