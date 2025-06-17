@@ -1,4 +1,6 @@
-﻿namespace FutbolYa.WebAPI.Models
+using System.Text.Json.Serialization;
+
+namespace FutbolYa.WebAPI.Models
 {
     public class Usuario
     {
@@ -13,6 +15,7 @@
         public List<Calificacion> Calificaciones { get; set; } = new();
 
         // ✅ Relación muchos a muchos
+        [JsonIgnore]
         public ICollection<Partido> Partidos { get; set; } = new List<Partido>();
     }
 }
