@@ -81,7 +81,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// ✅ Activar la política de CORS
+
 app.UseCors("AllowReactApp");
 
 app.UseAuthentication();
