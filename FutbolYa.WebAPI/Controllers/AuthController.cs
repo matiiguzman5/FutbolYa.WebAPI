@@ -19,17 +19,26 @@ namespace FutbolYa.WebAPI.Controllers
         }
 
         [HttpPost("registro")]
-        public async Task<IActionResult> Registrar([FromBody] Usuario usuario)
+        public async Task<IActionResult> Registrar([FromBody] RegisterDTO dto)
         {
-            var existe = await _context.Usuarios.AnyAsync(u => u.Correo == usuario.Correo);
+            var existe = await _context.Usuarios.AnyAsync(u => u.Correo == dto.Correo);
             if (existe)
                 return BadRequest("Ya existe un usuario con ese correo.");
+
+            var usuario = new Usuario
+            {
+                Nombre = dto.Nombre,
+                Correo = dto.Correo,
+                Contraseña = dto.Contraseña
+            };
 
             _context.Usuarios.Add(usuario);
             await _context.SaveChangesAsync();
 
             return Ok(new { mensaje = "Usuario registrado correctamente", usuario.Id });
         }
+
+
 
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDTO login)
@@ -48,6 +57,15 @@ namespace FutbolYa.WebAPI.Controllers
                 token,
                 usuario = new { usuario.Id, usuario.Nombre, usuario.Rol }
             });
+        }
+
+
+        public class RegisterDTO
+        {
+            public string Nombre { get; set; }
+            public string Correo { get; set; }
+            public string Contraseña { get; set; }
+            
         }
 
         public class LoginDTO
