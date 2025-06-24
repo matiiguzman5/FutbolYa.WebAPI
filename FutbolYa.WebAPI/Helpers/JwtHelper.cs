@@ -7,21 +7,22 @@ namespace FutbolYa.WebAPI.Helpers
 {
     public static class JwtHelper
     {
-        public static string GenerarToken(string usuarioId, string rol, string key)
+        public static string GenerarToken(string userId, string rol, string key)
         {
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, usuarioId),
+                new Claim(ClaimTypes.NameIdentifier, userId),
                 new Claim(ClaimTypes.Role, rol)
             };
 
-            var tokenKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
-            var creds = new SigningCredentials(tokenKey, SecurityAlgorithms.HmacSha256);
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(4),
-                signingCredentials: creds);
+                expires: DateTime.UtcNow.AddHours(2),
+                signingCredentials: credentials
+            );
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }

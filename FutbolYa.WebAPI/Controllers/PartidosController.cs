@@ -27,16 +27,24 @@ namespace FutbolYa.WebAPI.Controllers
             return Ok(partidos);
         }
 
+        [Authorize(Roles = "establecimiento")]
+        [Authorize(Roles = "administrador")]
         [Authorize]
         [HttpPost]
-        public async Task<IActionResult> CrearPartido([FromBody] Partido partido)
+        public async Task<IActionResult> CrearPartido([FromBody] PartidoDTO dto)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
                 return Unauthorized("Token inválido");
 
-            partido.OrganizadorId = userId;
-            partido.Jugadores = new List<Usuario>();
+            var partido = new Partido
+            {
+                
+                Ubicacion = dto.Ubicacion,
+                Fecha = dto.Fecha,
+                OrganizadorId = userId,
+                Jugadores = new List<Usuario>()
+            };
 
             _context.Partidos.Add(partido);
             await _context.SaveChangesAsync();
@@ -45,7 +53,7 @@ namespace FutbolYa.WebAPI.Controllers
         }
 
 
-        // GET: api/partidos/buscar?ubicacion=Pilar&fecha=2025-06-02
+        // GET: api/partidos/buscar
         [HttpGet("buscar")]
         public async Task<IActionResult> Buscar([FromQuery] string? ubicacion, [FromQuery] DateTime? fecha)
         {
@@ -84,4 +92,12 @@ namespace FutbolYa.WebAPI.Controllers
             return Ok("Usuario inscrito correctamente");
         }
     }
+
+    public class PartidoDTO
+    {
+        public string Ubicacion { get; set; } = string.Empty;
+        public DateTime Fecha { get; set; }
+
+    }
+
 }

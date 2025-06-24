@@ -12,10 +12,12 @@ namespace FutbolYa.WebAPI.Controllers
     public class UsuariosController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IWebHostEnvironment _env;
 
-        public UsuariosController(AppDbContext context)
+        public UsuariosController(AppDbContext context, IWebHostEnvironment env)
         {
             _context = context;
+            _env = env;
         }
 
         // GET: api/Usuarios/yo
@@ -31,7 +33,8 @@ namespace FutbolYa.WebAPI.Controllers
                     u.Id,
                     u.Nombre,
                     u.Correo,
-                    u.Rol
+                    u.Rol,
+                    u.FotoPerfil
                 })
                 .FirstOrDefaultAsync();
 
@@ -40,5 +43,88 @@ namespace FutbolYa.WebAPI.Controllers
 
             return Ok(usuario);
         }
+
+        // POST: api/Usuarios/subir-foto
+        [HttpPost("subir-foto")]
+        public async Task<IActionResult> SubirFoto([FromForm] IFormFile archivo)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            var usuario = await _context.Usuarios.FindAsync(userId);
+
+            if (archivo == null || archivo.Length == 0)
+                return BadRequest("No se envió ninguna imagen.");
+
+            var carpetaPerfiles = Path.Combine(_env.WebRootPath, "perfiles");
+
+            if (!Directory.Exists(carpetaPerfiles))
+                Directory.CreateDirectory(carpetaPerfiles);
+
+            var nombreArchivo = $"perfil_{userId}_{Guid.NewGuid()}{Path.GetExtension(archivo.FileName)}";
+            var rutaCompleta = Path.Combine(carpetaPerfiles, nombreArchivo);
+
+            using (var stream = new FileStream(rutaCompleta, FileMode.Create))
+            {
+                await archivo.CopyToAsync(stream);
+            }
+
+            usuario.FotoPerfil = $"/perfiles/{nombreArchivo}";
+            await _context.SaveChangesAsync();
+
+            return Ok(new { ruta = usuario.FotoPerfil });
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "administrador")]
+        public async Task<IActionResult> ObtenerTodos()
+        {
+            var usuarios = await _context.Usuarios
+                .Select(u => new {
+                    u.Id,
+                    u.Nombre,
+                    u.Correo,
+                    u.Rol
+                })
+                .ToListAsync();
+
+            return Ok(usuarios);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "administrador")]
+        public async Task<IActionResult> CrearUsuario([FromBody] Usuario dto)
+        {
+            if (await _context.Usuarios.AnyAsync(u => u.Correo == dto.Correo))
+                return BadRequest("Ya existe un usuario con ese correo.");
+
+            var nuevo = new Usuario
+            {
+                Nombre = dto.Nombre,
+                Correo = dto.Correo,
+                Contraseña = dto.Contraseña,
+                Rol = dto.Rol ?? "jugador"
+            };
+
+            _context.Usuarios.Add(nuevo);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { mensaje = "Usuario creado", nuevo.Id });
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "administrador")]
+        public async Task<IActionResult> Eliminar(int id)
+        {
+            var usuario = await _context.Usuarios.FindAsync(id);
+            if (usuario == null)
+                return NotFound("Usuario no encontrado.");
+
+            _context.Usuarios.Remove(usuario);
+            await _context.SaveChangesAsync();
+
+            return Ok("Usuario eliminado.");
+        }
+
+
     }
+
 }

@@ -1,4 +1,5 @@
-﻿using FutbolYa.WebAPI.Models;
+﻿using System.Security.Claims;
+using FutbolYa.WebAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -71,7 +72,26 @@ namespace FutbolYa.WebAPI.Controllers
 
             var evaluaciones = await _context.Rendimientos
                 .Where(r => r.EvaluadoId == evaluadoId)
-                .Select(r => new
+                .Include(r => r.Evaluador)
+                .OrderByDescending(r => r.Fecha)
+                .ToListAsync();
+
+            if (!evaluaciones.Any())
+            {
+                return Ok(new
+                {
+                    Valoracion = 0,
+                    Evaluaciones = new List<object>()
+                });
+            }
+
+            var valoracion = evaluaciones.Average(r =>
+                (r.Actitud + r.Pase + r.Defensa + r.TrabajoEquipo + r.Puntualidad) / 5.0);
+
+            var resultado = new
+            {
+                Valoracion = Math.Round(valoracion, 1),
+                Evaluaciones = evaluaciones.Select(r => new
                 {
                     r.PartidoId,
                     r.Actitud,
@@ -85,12 +105,61 @@ namespace FutbolYa.WebAPI.Controllers
                         r.Evaluador.Id,
                         r.Evaluador.Nombre
                     }
-                })
-                .OrderByDescending(r => r.Fecha)
-                .ToListAsync();
+                }).ToList()
+            };
 
-            return Ok(evaluaciones);
+            return Ok(resultado);
         }
 
+
+        // GET: api/jugadores/me
+        [HttpGet("me")]
+        public async Task<IActionResult> ObtenerJugadorActual()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
+                return Unauthorized("Token inválido");
+
+            var jugador = await _context.Usuarios
+                .Where(u => u.Id == userId)
+                .Select(u => new
+                {
+                    u.Id,
+                    u.Nombre,
+                    u.Correo,
+                    u.Posicion,
+                    u.FotoPerfil
+                })
+                .FirstOrDefaultAsync();
+
+            if (jugador == null)
+                return NotFound("Jugador no encontrado");
+
+            // Calcular promedio de valoración (promedio de todas las métricas)
+            var evaluaciones = await _context.Rendimientos
+                .Where(r => r.EvaluadoId == userId)
+                .ToListAsync();
+
+            double valoracion = 0;
+            if (evaluaciones.Any())
+            {
+                valoracion = evaluaciones.Average(r =>
+                    (r.Actitud + r.Pase + r.Defensa + r.TrabajoEquipo + r.Puntualidad) / 5.0
+                );
+            }
+
+            return Ok(new
+            {
+                jugador.Id,
+                jugador.Nombre,
+                jugador.Correo,
+                jugador.Posicion,
+                jugador.FotoPerfil,
+                Valoracion = Math.Round(valoracion, 1)
+            });
+        }
     }
+
+
 }
+

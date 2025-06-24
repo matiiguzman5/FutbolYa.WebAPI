@@ -29,7 +29,8 @@ namespace FutbolYa.WebAPI.Controllers
             {
                 Nombre = dto.Nombre,
                 Correo = dto.Correo,
-                Contraseña = dto.Contraseña
+                Contraseña = dto.Contraseña,
+                Rol = "jugador" //rol por defecto
             };
 
             _context.Usuarios.Add(usuario);

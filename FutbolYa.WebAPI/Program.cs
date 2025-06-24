@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 var key = builder.Configuration["Jwt:Key"];
 
-// ✅ CORS - DEBE IR ANTES DEL builder.Build()
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
@@ -81,6 +81,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseStaticFiles();
 
 app.UseCors("AllowReactApp");
 

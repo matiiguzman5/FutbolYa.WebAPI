@@ -13,11 +13,11 @@ public class Rendimientos
     public int EvaluadoId { get; set; }
     public Usuario Evaluado { get; set; }
 
-    public string Actitud { get; set; }
-    public string Pase { get; set; }
-    public string Defensa { get; set; }
-    public string TrabajoEquipo { get; set; }
-    public string Puntualidad { get; set; }
+    public int Actitud { get; set; }
+    public int Pase { get; set; }
+    public int Defensa { get; set; }
+    public int TrabajoEquipo { get; set; }
+    public int Puntualidad { get; set; }
 
     public DateTime Fecha { get; set; } = DateTime.Now;
 }
