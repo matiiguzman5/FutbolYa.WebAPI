@@ -1,0 +1,95 @@
+.perfil-container {
+  max-width: 600px;
+  margin: 60px auto 40px;
+  padding: 20px;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  text-align: center;
+  position: relative;
+}
+
+.perfil-nombre {
+  font-size: 28px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.perfil-foto {
+  width: 140px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 3px solid #2196f3;
+  margin-bottom: 10px;
+}
+
+.perfil-subir-foto {
+  margin-top: 10px;
+}
+
+.btn-subir-foto {
+  background-color: #2196f3;
+  color: white;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.btn-subir-foto:hover {
+  background-color: #1976d2;
+}
+
+.perfil-info-lista {
+  list-style: none;
+  padding: 0;
+  margin-top: 20px;
+}
+
+.perfil-info-item {
+  display: flex;
+  align-items: center;
+  background-color: #f7f7f7;
+  margin-bottom: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  text-align: left;
+}
+
+.perfil-info-item img {
+  width: 30px;
+  height: 30px;
+  margin-right: 12px;
+}
+
+.perfil-info-item strong {
+  color: #333;
+  font-size: 16px;
+}
+
+.perfil-info-item p {
+  margin: 4px 0 0;
+  font-size: 15px;
+  color: #555;
+}
+
+.footer-perfil {
+  margin-top: 30px;
+  font-size: 13px;
+  color: #888;
+}
+
+.volver-btn {
+  position: absolute;
+  top: 1px;
+  left: 30px;
+  background: transparent;
+  border: none;
+  color: #2196f3;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: underline;
+}
