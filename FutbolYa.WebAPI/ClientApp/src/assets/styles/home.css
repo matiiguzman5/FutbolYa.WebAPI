@@ -1,0 +1,175 @@
+/* src/assets/styles/home.css */
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #fff;
+  color: #000;
+}
+
+.home-header {
+  background-color: #007ac1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 30px;
+  color: white;
+}
+
+.logo {
+  width: 50px;
+  height: auto;
+}
+
+.home-header nav a {
+  margin: 0 15px;
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.home-search {
+  display: flex;
+  justify-content: center;
+  margin: 25px 0;
+}
+
+.search-container {
+  display: flex;
+  width: 100%;
+  max-width: 500px;
+  border-radius: 30px;
+  overflow: hidden;
+  border: 1px solid #ccc;
+  background-color: white;
+}
+
+.search-container input {
+  flex: 1;
+  padding: 10px 15px;
+  border: none;
+  outline: none;
+  font-size: 1rem;
+}
+
+.partidos-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  padding: 0 40px;
+  justify-items: center;
+  flex-grow: 1;
+}
+
+.partido-card {
+  position: relative;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  overflow: hidden;
+  background-color: #fff;
+  width: 100%;
+  max-width: 500px;
+  transition: transform 0.2s ease;
+}
+
+.partido-card:hover {
+  transform: scale(1.02);
+}
+
+.partido-card img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.tipo-cancha {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: black;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-weight: bold;
+}
+
+.info {
+  padding: 10px;
+}
+
+.paginacion {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.paginacion button {
+  border: none;
+  padding: 6px 12px;
+  border-radius: 5px;
+  background-color: #ddd;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.85rem;
+  min-width: unset;
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.paginacion button.activo {
+  background-color: #007ac1;
+  color: white;
+}
+
+.home-footer {
+  background-color: #007ac1;
+  color: white;
+  padding: 20px;
+  text-align: center;
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  margin: 10px 0;
+  flex-wrap: wrap;
+}
+
+.footer-links a {
+  color: white;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.footer-icons {
+  margin-top: 10px;
+  font-size: 1.4rem;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+html, body {
+  height: 100%;
+}
+
+.home-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.home-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.home {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
