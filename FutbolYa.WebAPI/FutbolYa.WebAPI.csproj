@@ -1,27 +1,50 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.29" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.29">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.29" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.5">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.29" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.29">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.29" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.5">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="wwwroot\perfiles\" />
-  </ItemGroup>
+	<ItemGroup>
+		<Folder Include="wwwroot\perfiles\" />
+	</ItemGroup>
+
+	<!-- 🛠️ Ejecutar npm install siempre -->
+	<Target Name="DebugEnsureNodeEnv" BeforeTargets="Build">
+		<Exec Command="npm install" WorkingDirectory="ClientApp" />
+	</Target>
+
+	<!-- 🚀 Para producción: construir React con npm run build -->
+	<Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">
+		<Exec Command="npm install" WorkingDirectory="ClientApp" />
+		<Exec Command="npm run build" WorkingDirectory="ClientApp" />
+		<ItemGroup>
+			<DistFiles Include="ClientApp\build\**" />
+			<ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
+				<RelativePath>%(DistFiles.Identity)</RelativePath>
+				<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+			</ResolvedFileToPublish>
+		</ItemGroup>
+	</Target>
+
+	<!-- 🧪 En desarrollo: ejecutar npm start automáticamente -->
+	<Target Name="RunReactDevServer" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+		<Exec Command="start cmd /c npm start" WorkingDirectory="ClientApp" />
+	</Target>
 
 </Project>
