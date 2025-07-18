@@ -12,6 +12,8 @@ namespace FutbolYa.WebAPI.Models
         public DbSet<Calificacion> Calificaciones { get; set; }
         public DbSet<Mensaje> Mensajes { get; set; }
         public DbSet<Rendimientos> Rendimientos { get; set; }
+        public DbSet<Cancha> Canchas { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
