@@ -4,6 +4,7 @@ using FutbolYa.WebAPI.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FutbolYa.WebAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250718013656_AddReservas")]
+    partial class AddReservas
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -197,21 +199,6 @@ namespace FutbolYa.WebAPI.Migrations
                     b.ToTable("Reservas");
                 });
 
-            modelBuilder.Entity("FutbolYa.WebAPI.Models.ReservaUsuario", b =>
-                {
-                    b.Property<int>("ReservaId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UsuarioId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ReservaId", "UsuarioId");
-
-                    b.HasIndex("UsuarioId");
-
-                    b.ToTable("ReservaUsuarios");
-                });
-
             modelBuilder.Entity("FutbolYa.WebAPI.Models.Usuario", b =>
                 {
                     b.Property<int>("Id")
@@ -393,25 +380,6 @@ namespace FutbolYa.WebAPI.Migrations
                     b.Navigation("UsuarioEstablecimiento");
                 });
 
-            modelBuilder.Entity("FutbolYa.WebAPI.Models.ReservaUsuario", b =>
-                {
-                    b.HasOne("FutbolYa.WebAPI.Models.Reserva", "Reserva")
-                        .WithMany("Jugadores")
-                        .HasForeignKey("ReservaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("FutbolYa.WebAPI.Models.Usuario", "Usuario")
-                        .WithMany()
-                        .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Reserva");
-
-                    b.Navigation("Usuario");
-                });
-
             modelBuilder.Entity("Partido", b =>
                 {
                     b.HasOne("FutbolYa.WebAPI.Models.Usuario", "Organizador")
@@ -463,11 +431,6 @@ namespace FutbolYa.WebAPI.Migrations
                     b.Navigation("Evaluador");
 
                     b.Navigation("Partido");
-                });
-
-            modelBuilder.Entity("FutbolYa.WebAPI.Models.Reserva", b =>
-                {
-                    b.Navigation("Jugadores");
                 });
 
             modelBuilder.Entity("FutbolYa.WebAPI.Models.Usuario", b =>
