@@ -13,6 +13,9 @@ namespace FutbolYa.WebAPI.Models
         public DbSet<Mensaje> Mensajes { get; set; }
         public DbSet<Rendimientos> Rendimientos { get; set; }
         public DbSet<Cancha> Canchas { get; set; }
+        public DbSet<Reserva> Reservas { get; set; }
+        public DbSet<ReservaUsuario> ReservaUsuarios { get; set; }
+
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -36,6 +39,27 @@ namespace FutbolYa.WebAPI.Models
                 .WithMany()
                 .HasForeignKey(r => r.EvaluadoId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Reserva>()
+                .HasOne(r => r.UsuarioEstablecimiento)
+                .WithMany()
+                .HasForeignKey(r => r.UsuarioEstablecimientoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ReservaUsuario>()
+                .HasKey(ru => new { ru.ReservaId, ru.UsuarioId });
+
+            modelBuilder.Entity<ReservaUsuario>()
+                .HasOne(ru => ru.Reserva)
+                .WithMany(r => r.Jugadores)
+                .HasForeignKey(ru => ru.ReservaId);
+
+            modelBuilder.Entity<ReservaUsuario>()
+                .HasOne(ru => ru.Usuario)
+                .WithMany()
+                .HasForeignKey(ru => ru.UsuarioId)
+                .OnDelete(DeleteBehavior.Restrict);
+
         }
     }
 }
