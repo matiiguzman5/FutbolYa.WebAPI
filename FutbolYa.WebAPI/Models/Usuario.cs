@@ -9,6 +9,7 @@ namespace FutbolYa.WebAPI.Models
         public string Correo { get; set; }
         public string Contraseña { get; set; }
         public string Rol { get; set; } = "usuario";
+        public string? Telefono { get; set; }
         public string? Posicion { get; set; }
         public string? FotoPerfil { get; set; }
 
