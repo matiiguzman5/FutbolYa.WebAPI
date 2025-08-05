@@ -91,6 +91,8 @@ else
     });
 }
 
+app.UseStaticFiles();
+
 app.UseHttpsRedirection();
 
 app.UseCors("AllowReactApp");
