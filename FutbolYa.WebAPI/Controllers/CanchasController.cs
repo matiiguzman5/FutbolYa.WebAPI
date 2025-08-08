@@ -6,7 +6,7 @@ using System.Security.Claims;
 
 namespace FutbolYa.WebAPI.Controllers
 {
-    [Authorize(Roles = "establecimiento")]
+    
     [ApiController]
     [Route("api/[controller]")]
     public class CanchasController : ControllerBase
@@ -19,6 +19,7 @@ namespace FutbolYa.WebAPI.Controllers
         }
 
         // POST: api/canchas
+        [Authorize(Roles = "establecimiento, administrador")]
         [HttpPost]
         public async Task<IActionResult> Crear([FromBody] CanchaDTO dto)
         {
@@ -51,20 +52,9 @@ namespace FutbolYa.WebAPI.Controllers
             return Ok(new { mensaje = "Cancha creada correctamente", cancha.Id });
         }
 
-        // GET: api/canchas/mis-canchas
-        [HttpGet("mis-canchas")]
-        public async Task<IActionResult> ObtenerPropias()
-        {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-
-            var canchas = await _context.Canchas
-                .Where(c => c.UsuarioEstablecimientoId == userId)
-                .ToListAsync();
-
-            return Ok(canchas);
-        }
-
+      
         // PUT: api/canchas/5
+        [Authorize(Roles = "establecimiento, administrador")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Editar(int id, [FromBody] CanchaDTO dto)
         {
@@ -96,7 +86,42 @@ namespace FutbolYa.WebAPI.Controllers
             return Ok("Cancha actualizada correctamente");
         }
 
+
+        [Authorize]
+        [HttpGet("mis-canchas")]
+        public async Task<IActionResult> ObtenerPropias()
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+            var canchas = await _context.Canchas
+                .Where(c => c.UsuarioEstablecimientoId == userId)
+                .ToListAsync();
+
+            return Ok(canchas);
+        }
+
+        // GET: api/canchas/disponibles
+        [HttpGet("disponibles")]
+        [AllowAnonymous] // o [Authorize] si querés que solo usuarios logueados puedan ver
+        public async Task<IActionResult> ObtenerDisponibles()
+        {
+            var canchas = await _context.Canchas
+                .Include(c => c.UsuarioEstablecimiento)
+                .ToListAsync();
+
+            var resultado = canchas.Select(c => new
+            {
+                c.Id,
+                c.Nombre,
+                c.Superficie,
+                c.Estado
+            });
+
+            return Ok(resultado);
+        }
+
         // DELETE: api/canchas/5
+        [Authorize(Roles = "establecimiento, administrador")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Eliminar(int id)
         {
@@ -111,5 +136,6 @@ namespace FutbolYa.WebAPI.Controllers
 
             return Ok("Cancha eliminada");
         }
+
     }
 }
