@@ -363,7 +363,7 @@ namespace FutbolYa.WebAPI.Controllers
             {
                 "F5" => 10,
                 "F7" => 14,
-                "F11" => 24,
+                "F11" => 22,
                 _ => 10
             };
 
