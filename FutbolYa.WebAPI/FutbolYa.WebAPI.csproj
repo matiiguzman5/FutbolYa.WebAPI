@@ -23,28 +23,5 @@
 	<ItemGroup>
 		<Folder Include="wwwroot\perfiles\" />
 	</ItemGroup>
-
-	<!-- 🛠️ Ejecutar npm install siempre -->
-	<Target Name="DebugEnsureNodeEnv" BeforeTargets="Build">
-		<Exec Command="npm install" WorkingDirectory="ClientApp" />
-	</Target>
-
-	<!-- 🚀 Para producción: construir React con npm run build -->
-	<Target Name="PublishRunWebpack" AfterTargets="ComputeFilesToPublish">
-		<Exec Command="npm install" WorkingDirectory="ClientApp" />
-		<Exec Command="npm run build" WorkingDirectory="ClientApp" />
-		<ItemGroup>
-			<DistFiles Include="ClientApp\build\**" />
-			<ResolvedFileToPublish Include="@(DistFiles->'%(FullPath)')" Exclude="@(ResolvedFileToPublish)">
-				<RelativePath>%(DistFiles.Identity)</RelativePath>
-				<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-			</ResolvedFileToPublish>
-		</ItemGroup>
-	</Target>
-
-	<!-- 🧪 En desarrollo: ejecutar npm start automáticamente -->
-	<Target Name="RunReactDevServer" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
-		<Exec Command="start cmd /c npm start" WorkingDirectory="ClientApp" />
-	</Target>
-
+	
 </Project>
