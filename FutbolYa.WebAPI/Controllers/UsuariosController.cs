@@ -153,6 +153,27 @@ namespace FutbolYa.WebAPI.Controllers
             return Ok("Usuario eliminado.");
         }
 
+        [AllowAnonymous]
+        [HttpGet("establecimientos")]
+        public async Task<IActionResult> ListarEstablecimientos()
+        {
+            var estabs = await _context.Usuarios
+                .Where(u => u.Rol == "establecimiento")
+                .Select(u => new {
+                    u.Id,
+                    u.Nombre,
+                    u.Correo,
+                    u.Telefono,
+                    Canchas = _context.Canchas
+                               .Where(c => c.UsuarioEstablecimientoId == u.Id)
+                               .Select(c => new { c.Id, c.Nombre, c.Tipo })
+                               .ToList()
+                })
+                .ToListAsync();
+
+            return Ok(estabs);
+        }
+
 
     }
 

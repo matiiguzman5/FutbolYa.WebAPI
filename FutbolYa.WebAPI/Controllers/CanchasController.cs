@@ -142,5 +142,47 @@ namespace FutbolYa.WebAPI.Controllers
 
             return Ok("Cancha eliminada");
         }
+
+        // GET: api/canchas/de/2?tipo=F7
+        [AllowAnonymous]
+        [HttpGet("de/{establecimientoId}")]
+        public async Task<IActionResult> CanchasDeEstablecimiento(
+            int establecimientoId, [FromQuery] string? tipo)
+        {
+            var query = _context.Canchas
+                .Where(c => c.UsuarioEstablecimientoId == establecimientoId);
+
+            if (!string.IsNullOrWhiteSpace(tipo))
+                query = query.Where(c => c.Tipo == tipo);
+
+            var canchas = await query
+                .Select(c => new {
+                    c.Id,
+                    c.Nombre,
+                    c.Tipo,
+                    c.Superficie,
+                    c.Estado,
+                    c.PrecioBaseHora,
+                    c.HorarioApertura,
+                    c.HorarioCierre
+                })
+                .ToListAsync();
+
+            return Ok(canchas);
+        }
+
+        // GET: api/canchas/de/2/tipos
+        [AllowAnonymous]
+        [HttpGet("de/{establecimientoId}/tipos")]
+        public async Task<IActionResult> TiposDisponibles(int establecimientoId)
+        {
+            var tipos = await _context.Canchas
+                .Where(c => c.UsuarioEstablecimientoId == establecimientoId)
+                .Select(c => c.Tipo)
+                .Distinct()
+                .ToListAsync();
+
+            return Ok(tipos);
+        }
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace FutbolYa.WebAPI.DTOs
+﻿namespace FutbolYa.WebAPI.Models
 {
     public class CanchaUpdateDTO
     {
