@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.FileProviders;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -78,10 +79,21 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-app.UseHttpsRedirection();
+else
+{
+    // Solo en producción: servir el frontend estático
+    app.UseDefaultFiles();
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new PhysicalFileProvider(
+            Path.Combine(builder.Environment.ContentRootPath, "ClientApp", "build")),
+        RequestPath = ""
+    });
+}
 
 app.UseStaticFiles();
+
+app.UseHttpsRedirection();
 
 app.UseCors("AllowReactApp");
 
@@ -91,3 +103,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+//puto el q lee

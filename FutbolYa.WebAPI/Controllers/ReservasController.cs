@@ -48,7 +48,6 @@ namespace FutbolYa.WebAPI.Controllers
             if (!string.IsNullOrEmpty(cancha.DiasNoDisponibles) && cancha.DiasNoDisponibles.Contains(diaReserva))
                 return BadRequest($"La cancha no está disponible los días {diaReserva}.");
 
-            // Verifica si hay conflicto de horario
             var fin = dto.FechaHora.AddMinutes(duracion);
             var conflicto = await _context.Reservas.AnyAsync(r =>
                 r.CanchaId == dto.CanchaId &&
@@ -69,7 +68,6 @@ namespace FutbolYa.WebAPI.Controllers
                     return BadRequest("Ya tenés una reserva ese día.");
             }
 
-
             var reserva = new Reserva
             {
                 CanchaId = dto.CanchaId,
@@ -89,52 +87,48 @@ namespace FutbolYa.WebAPI.Controllers
             _context.Reservas.Add(reserva);
             await _context.SaveChangesAsync();
 
-            if (userRol == "jugador")
+            // Se agrega automáticamente al jugador como participante
+            _context.ReservaUsuarios.Add(new ReservaUsuario
             {
-                _context.ReservaUsuarios.Add(new ReservaUsuario
-                {
-                    ReservaId = reserva.Id,
-                    UsuarioId = userId
-                });
-                await _context.SaveChangesAsync();
-            }
+                ReservaId = reserva.Id,
+                UsuarioId = userId
+            });
+            await _context.SaveChangesAsync();
+
             Console.WriteLine($"[CREAR] Reserva {reserva.Id} - Usuario {userId} - Cancha {dto.CanchaId} - {dto.FechaHora}");
 
             return Ok(new { mensaje = "Reserva creada", reserva.Id });
         }
 
-        // DELETE: api/reservas/{id}/cancelar
-        [HttpDelete("{id}/cancelar")]
-        public async Task<IActionResult> Cancelar(int id, [FromQuery] string motivo)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> CancelarReserva(int id)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
             var userRol = User.FindFirst(ClaimTypes.Role)?.Value;
 
-            var reserva = await _context.Reservas.FindAsync(id);
+            var reserva = await _context.Reservas
+                .Include(r => r.Jugadores)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
             if (reserva == null)
-                return NotFound("Reserva no encontrada");
+                return NotFound("Reserva no encontrada.");
 
-            // Establecimiento puede cancelar si es dueño
-            if (userRol == "establecimiento" && reserva.UsuarioEstablecimientoId != userId)
-                return Unauthorized("No autorizado para cancelar esta reserva");
+            
+            var creador = await _context.Usuarios.FirstOrDefaultAsync(u => u.Correo == reserva.ClienteEmail);
+            if (creador == null || creador.Id != userId)
+                return Forbid("No tenés permiso para cancelar esta reserva.");
 
-            // Jugador puede cancelar si es cliente o se unió
-            if (userRol == "jugador")
-            {
-                var esCreador = reserva.ClienteEmail == _context.Usuarios.Find(userId)?.Correo;
-                var estaUnido = await _context.ReservaUsuarios
-                    .AnyAsync(ru => ru.ReservaId == id && ru.UsuarioId == userId);
+            
+            if (reserva.Jugadores.Any())
+                return BadRequest("No se puede cancelar la reserva porque hay jugadores anotados.");
 
-                if (!esCreador && !estaUnido)
-                    return Unauthorized("No estás en esta reserva");
-            }
-
+            
             _context.Reservas.Remove(reserva);
             await _context.SaveChangesAsync();
-            Console.WriteLine($"[CANCELAR] Reserva {reserva.Id} cancelada por usuario {userId} - Motivo: {motivo}");
 
-            return Ok($"Reserva cancelada. Motivo: {motivo}");
+            return Ok("Reserva cancelada correctamente.");
         }
+
 
 
         // GET: api/reservas/activas
@@ -163,13 +157,13 @@ namespace FutbolYa.WebAPI.Controllers
         }
 
 
-        // GET: api/reservas/mis
         [HttpGet("mis")]
         public async Task<IActionResult> VerMisReservas()
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
             var userRol = User.FindFirst(ClaimTypes.Role)?.Value;
 
+            // Establecimiento: reservas creadas por él
             if (userRol == "establecimiento")
             {
                 var reservas = await _context.Reservas
@@ -182,7 +176,7 @@ namespace FutbolYa.WebAPI.Controllers
                     r.Id,
                     r.CanchaId,
                     CanchaNombre = r.Cancha.Nombre,
-                    Hora = r.FechaHora.ToHoraFormato(),
+                    Fecha = r.FechaHora.ToString("yyyy-MM-ddTHH:mm:ss"),
                     r.DuracionMinutos,
                     r.ClienteNombre,
                     r.ClienteTelefono,
@@ -190,18 +184,57 @@ namespace FutbolYa.WebAPI.Controllers
                     r.EstadoPago,
                     r.Observaciones
                 });
-                return Ok(resultado);
 
+                return Ok(resultado);
             }
 
-            // Jugador: buscar reservas donde figura como cliente (opcional)
-            var jugador = await _context.Usuarios.FindAsync(userId);
-            var reservasCliente = await _context.Reservas
-                .Where(r => r.ClienteEmail == jugador.Correo)
+            // Administrador: ve todas las reservas
+            if (userRol == "administrador")
+            {
+                var reservas = await _context.Reservas
+                    .Include(r => r.Cancha)
+                    .ToListAsync();
+
+                var resultado = reservas.Select(r => new
+                {
+                    r.Id,
+                    r.CanchaId,
+                    CanchaNombre = r.Cancha.Nombre,
+                    Fecha = r.FechaHora.ToString("yyyy-MM-ddTHH:mm:ss"),
+                    r.DuracionMinutos,
+                    r.ClienteNombre,
+                    r.ClienteTelefono,
+                    r.ClienteEmail,
+                    r.EstadoPago,
+                    r.Observaciones
+                });
+
+                return Ok(resultado);
+            }
+
+            // Jugador: reservas en las que está inscripto o es el cliente
+            var reservasJugador = await _context.ReservaUsuarios
+                .Where(ru => ru.UsuarioId == userId)
+                .Include(ru => ru.Reserva)
+                    .ThenInclude(r => r.Cancha)
+                .Select(ru => ru.Reserva)
                 .ToListAsync();
 
-            return Ok(reservasCliente);
+            var resultadoJugador = reservasJugador.Select(r => new
+            {
+                r.Id,
+                r.CanchaId,
+                CanchaNombre = r.Cancha.Nombre,
+                Fecha = r.FechaHora.ToString("yyyy-MM-ddTHH:mm:ss"),
+                r.DuracionMinutos,
+                r.ClienteNombre,
+                r.EstadoPago,
+                r.Observaciones
+            });
+
+            return Ok(resultadoJugador);
         }
+
 
         [HttpGet("cancha/{id}")]
         [Authorize(Roles = "establecimiento")]
@@ -229,7 +262,7 @@ namespace FutbolYa.WebAPI.Controllers
                 r.Id,
                 r.CanchaId,
                 CanchaNombre = r.Cancha.Nombre,
-                Hora = r.FechaHora.ToHoraFormato(),
+                fechaHora = r.FechaHora.ToString("dd/MM/yyyy HH:mm"),
                 r.DuracionMinutos,
                 r.ClienteNombre,
                 r.EstadoPago,
@@ -355,7 +388,7 @@ namespace FutbolYa.WebAPI.Controllers
 
             var jugadores = reserva.Jugadores.Select(j => j.Usuario).ToList();
 
-            // Si el creador no está en la lista, lo sumamos
+            
             if (creador != null && !jugadores.Any(j => j.Id == creador.Id))
                 jugadores.Insert(0, creador);
 
@@ -387,23 +420,86 @@ namespace FutbolYa.WebAPI.Controllers
         }
 
 
+        // GET: api/reservas/disponibles
+        [HttpGet("disponibles")]
+        [Authorize] 
+        public async Task<IActionResult> VerReservasDisponibles()
+        {
+            var ahora = DateTime.Now;
 
-        // DELETE: api/reservas/5/salir
-        [HttpDelete("{id}/salir")]
-        public async Task<IActionResult> Salir(int id)
+            var reservas = await _context.Reservas
+                .Include(r => r.Cancha)
+                .Include(r => r.Jugadores)
+                .Where(r =>
+                    r.FechaHora > ahora &&
+                    r.FechaHora.TimeOfDay >= r.Cancha.HorarioApertura &&
+                    r.FechaHora.AddMinutes(r.DuracionMinutos).TimeOfDay <= r.Cancha.HorarioCierre
+                )
+                .ToListAsync();
+
+            var resultado = reservas
+                .Where(r =>
+                {
+                    int capacidad = r.Cancha.Tipo switch
+                    {
+                        "F5" => 10,
+                        "F7" => 14,
+                        "F11" => 22,
+                        _ => 10
+                    };
+
+                    int jugadores = r.Jugadores.Count;
+
+                    return jugadores < capacidad;
+                })
+                .Select(r => new
+                {
+                    r.Id,
+                    r.FechaHora,
+                    r.CanchaId,
+                    NombreCancha = r.Cancha.Nombre,
+                    Tipo = r.Cancha.Tipo,
+                    Superficie = r.Cancha.Superficie,
+                    Capacidad = r.Cancha.Tipo == "F5" ? 10 : r.Cancha.Tipo == "F7" ? 14 : 22,
+                    Anotados = r.Jugadores.Count,
+                    EspaciosDisponibles = (r.Cancha.Tipo == "F5" ? 10 : r.Cancha.Tipo == "F7" ? 14 : 22) - r.Jugadores.Count,
+                    Observaciones = r.Observaciones,
+                    EstadoPago = r.EstadoPago
+                });
+
+            return Ok(resultado);
+        }
+
+        [HttpDelete("{reservaId}/salir")]
+        public async Task<IActionResult> SalirDeReserva(int reservaId)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-            var reserva = await _context.Reservas.FindAsync(id);
-            if (reserva == null) return NotFound("Reserva no encontrada");
 
-            if (User.IsInRole("establecimiento") || reserva.ClienteNombre.Contains(userId.ToString()))
+            var participacion = await _context.ReservaUsuarios
+                .FirstOrDefaultAsync(ru => ru.ReservaId == reservaId && ru.UsuarioId == userId);
+
+            if (participacion == null)
+                return NotFound("No estás anotado en esta reserva.");
+
+            _context.ReservaUsuarios.Remove(participacion);
+            await _context.SaveChangesAsync();
+
+            // Verificar si queda alguien más en la reserva
+            var quedanJugadores = await _context.ReservaUsuarios
+                .AnyAsync(ru => ru.ReservaId == reservaId);
+
+            if (!quedanJugadores)
             {
-                _context.Reservas.Remove(reserva);
-                await _context.SaveChangesAsync();
-                return Ok("Reserva cancelada");
+                var reserva = await _context.Reservas.FindAsync(reservaId);
+                if (reserva != null)
+                {
+                    _context.Reservas.Remove(reserva);
+                    await _context.SaveChangesAsync();
+                }
             }
 
-            return Forbid("No estás autorizado para cancelar esta reserva");
+            return Ok("Saliste de la reserva.");
         }
+
     }
 }
