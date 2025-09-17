@@ -18,7 +18,6 @@ namespace FutbolYa.WebAPI.Migrations
                     Nombre = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Tipo = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Superficie = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Estado = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     PrecioBaseHora = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     PrecioNocturno = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     PrecioFinDeSemana = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
