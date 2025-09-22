@@ -129,6 +129,88 @@ namespace FutbolYa.WebAPI.Controllers
             return Ok("Reserva cancelada correctamente.");
         }
 
+        // POST: api/reservas/cancha/{canchaId}
+        // Crea una reserva de 60' pasando solo fecha/hora + observaciones.
+        // La cancha va en la URL, y se autocompletan los datos del jugador.
+        [HttpPost("cancha/{canchaId}")]
+        public async Task<IActionResult> CrearEnCancha(int canchaId, [FromBody] ReservaNewDTO dto)
+        {
+            const int duracion = 60;
+
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var userRol = User.FindFirst(ClaimTypes.Role)?.Value;
+
+            var usuario = await _context.Usuarios.FindAsync(userId);
+            if (usuario == null)
+                return Unauthorized("Usuario no encontrado");
+
+            var cancha = await _context.Canchas.FindAsync(canchaId);
+            if (cancha == null)
+                return NotFound("Cancha no encontrada");
+
+            // Validaciones básicas (mismo criterio que el POST general)
+            if (dto.FechaHora < DateTime.Now)
+                return BadRequest("No se puede crear una reserva en el pasado.");
+
+            if (dto.FechaHora.TimeOfDay < cancha.HorarioApertura ||
+                dto.FechaHora.AddMinutes(duracion).TimeOfDay > cancha.HorarioCierre)
+                return BadRequest("La reserva está fuera del horario permitido de la cancha.");
+
+            var diaReserva = dto.FechaHora.ToString("dddd", new CultureInfo("es-ES"));
+            if (!string.IsNullOrEmpty(cancha.DiasNoDisponibles) && cancha.DiasNoDisponibles.Contains(diaReserva))
+                return BadRequest($"La cancha no está disponible los días {diaReserva}.");
+
+            var fin = dto.FechaHora.AddMinutes(duracion);
+            var conflicto = await _context.Reservas.AnyAsync(r =>
+                r.CanchaId == canchaId &&
+                dto.FechaHora < r.FechaHora.AddMinutes(r.DuracionMinutos) &&
+                fin > r.FechaHora
+            );
+            if (conflicto)
+                return BadRequest("Ya hay una reserva en ese horario");
+
+            // (Opcional) Regla: un jugador no puede tener dos reservas el mismo día
+            if (userRol == "jugador")
+            {
+                var yaTieneReservaEseDia = await _context.Reservas.AnyAsync(r =>
+                    r.ClienteEmail == usuario.Correo &&
+                    r.FechaHora.Date == dto.FechaHora.Date
+                );
+                if (yaTieneReservaEseDia)
+                    return BadRequest("Ya tenés una reserva ese día.");
+            }
+
+            var reserva = new Reserva
+            {
+                CanchaId = canchaId,
+                FechaHora = dto.FechaHora,
+                DuracionMinutos = duracion,
+                ClienteNombre = usuario.Nombre,
+                ClienteTelefono = usuario.Telefono ?? "No informado",
+                ClienteEmail = usuario.Correo,
+                EsFrecuente = false,
+                EstadoPago = "pendiente",
+                Observaciones = dto.Observaciones,
+                UsuarioEstablecimientoId = cancha.UsuarioEstablecimientoId
+            };
+
+            _context.Reservas.Add(reserva);
+            await _context.SaveChangesAsync();
+
+            // Si es jugador, se anota automáticamente como participante
+            if (userRol == "jugador")
+            {
+                _context.ReservaUsuarios.Add(new ReservaUsuario
+                {
+                    ReservaId = reserva.Id,
+                    UsuarioId = userId
+                });
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(new { mensaje = "Reserva creada", reserva.Id });
+        }
+
 
 
         // GET: api/reservas/activas

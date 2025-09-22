@@ -44,6 +44,35 @@ namespace FutbolYa.WebAPI.Controllers
             return Ok(usuario);
         }
 
+
+        // PUT: api/Usuarios/{id}  (ADMIN)
+        [HttpPut("{id}")]
+        [Authorize(Roles = "administrador")]
+        public async Task<IActionResult> EditarUsuario(int id, [FromBody] Usuario body)
+        {
+            var u = await _context.Usuarios.FindAsync(id);
+            if (u == null) return NotFound("Usuario no encontrado.");
+
+            // Validar correo duplicado si viene uno nuevo
+            if (!string.IsNullOrWhiteSpace(body?.Correo))
+            {
+                var existe = await _context.Usuarios.AnyAsync(x => x.Correo == body.Correo && x.Id != id);
+                if (existe) return BadRequest("Ya existe un usuario con ese correo.");
+                u.Correo = body.Correo;
+            }
+
+            // Campos que sí editar
+            if (!string.IsNullOrWhiteSpace(body?.Nombre)) u.Nombre = body.Nombre;
+            if (!string.IsNullOrWhiteSpace(body?.Telefono)) u.Telefono = body.Telefono;
+            if (!string.IsNullOrWhiteSpace(body?.Rol)) u.Rol = body.Rol;
+            if (!string.IsNullOrWhiteSpace(body?.Contraseña)) u.Contraseña = body.Contraseña; 
+
+            await _context.SaveChangesAsync();
+            return Ok(new { mensaje = "Usuario actualizado" });
+        }
+
+
+
         // POST: api/Usuarios/subir-foto
         [HttpPost("subir-foto")]
         public async Task<IActionResult> SubirFoto([FromForm] IFormFile archivo)
@@ -122,6 +151,27 @@ namespace FutbolYa.WebAPI.Controllers
             await _context.SaveChangesAsync();
 
             return Ok("Usuario eliminado.");
+        }
+
+        [AllowAnonymous]
+        [HttpGet("establecimientos")]
+        public async Task<IActionResult> ListarEstablecimientos()
+        {
+            var estabs = await _context.Usuarios
+                .Where(u => u.Rol == "establecimiento")
+                .Select(u => new {
+                    u.Id,
+                    u.Nombre,
+                    u.Correo,
+                    u.Telefono,
+                    Canchas = _context.Canchas
+                               .Where(c => c.UsuarioEstablecimientoId == u.Id)
+                               .Select(c => new { c.Id, c.Nombre, c.Tipo })
+                               .ToList()
+                })
+                .ToListAsync();
+
+            return Ok(estabs);
         }
 
 
