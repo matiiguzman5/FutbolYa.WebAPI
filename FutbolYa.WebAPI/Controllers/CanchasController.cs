@@ -30,7 +30,7 @@ namespace FutbolYa.WebAPI.Controllers
                 Nombre = dto.Nombre,
                 Tipo = dto.Tipo,
                 Superficie = dto.Superficie,
-                Estado = dto.Estado,
+                //Estado = dto.Estado,
                 PrecioBaseHora = dto.PrecioBaseHora,
                 PrecioNocturno = dto.PrecioNocturno,
                 PrecioFinDeSemana = dto.PrecioFinDeSemana,
@@ -67,7 +67,7 @@ namespace FutbolYa.WebAPI.Controllers
             cancha.Nombre = dto.Nombre;
             cancha.Tipo = dto.Tipo;
             cancha.Superficie = dto.Superficie;
-            cancha.Estado = dto.Estado;
+            //cancha.Estado = dto.Estado;
             cancha.PrecioBaseHora = dto.PrecioBaseHora;
             cancha.PrecioNocturno = dto.PrecioNocturno;
             cancha.PrecioFinDeSemana = dto.PrecioFinDeSemana;
@@ -113,8 +113,8 @@ namespace FutbolYa.WebAPI.Controllers
             {
                 c.Id,
                 c.Nombre,
-                c.Superficie,
-                c.Estado
+                c.Superficie
+               // c.Estado
             });
 
             return Ok(resultado);
