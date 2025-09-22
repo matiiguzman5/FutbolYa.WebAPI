@@ -30,7 +30,6 @@ namespace FutbolYa.WebAPI.Controllers
                 Nombre = dto.Nombre,
                 Tipo = dto.Tipo,
                 Superficie = dto.Superficie,
-                Estado = dto.Estado,
                 PrecioBaseHora = dto.PrecioBaseHora,
                 PrecioNocturno = dto.PrecioNocturno,
                 PrecioFinDeSemana = dto.PrecioFinDeSemana,
@@ -65,11 +64,11 @@ namespace FutbolYa.WebAPI.Controllers
             if (cancha == null)
                 return NotFound("Cancha no encontrada o no te pertenece.");
 
-            // Patch parcial: aplico sólo lo que vino
+
             if (dto.Nombre != null) cancha.Nombre = dto.Nombre;
             if (dto.Tipo != null) cancha.Tipo = dto.Tipo;
             if (dto.Superficie != null) cancha.Superficie = dto.Superficie;
-            if (dto.Estado != null) cancha.Estado = dto.Estado;
+
 
             if (dto.PrecioBaseHora.HasValue) cancha.PrecioBaseHora = dto.PrecioBaseHora.Value;
             if (dto.PrecioNocturno.HasValue) cancha.PrecioNocturno = dto.PrecioNocturno.Value;
@@ -117,7 +116,7 @@ namespace FutbolYa.WebAPI.Controllers
                 c.Nombre,
                 c.Tipo,
                 c.Superficie,
-                c.Estado,
+
                 c.PrecioBaseHora,
                 c.HorarioApertura,
                 c.HorarioCierre
@@ -161,7 +160,7 @@ namespace FutbolYa.WebAPI.Controllers
                     c.Nombre,
                     c.Tipo,
                     c.Superficie,
-                    c.Estado,
+
                     c.PrecioBaseHora,
                     c.HorarioApertura,
                     c.HorarioCierre
