@@ -40,6 +40,25 @@ namespace FutbolYa.WebAPI.Models
                 .HasForeignKey(r => r.EvaluadoId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<Calificacion>()
+                .HasOne(c => c.Evaluador)
+                .WithMany()
+                .HasForeignKey(c => c.EvaluadorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Calificacion>()
+                .HasOne(c => c.Evaluado)
+                .WithMany()
+                .HasForeignKey(c => c.EvaluadoId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Calificacion>()
+                .HasOne(c => c.Partido)
+                .WithMany()
+                .HasForeignKey(c => c.PartidoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+
             modelBuilder.Entity<Reserva>()
                 .HasOne(r => r.UsuarioEstablecimiento)
                 .WithMany()
