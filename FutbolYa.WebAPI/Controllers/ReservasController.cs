@@ -379,11 +379,10 @@ namespace FutbolYa.WebAPI.Controllers
 
             var resultado = reservas.Select(r => new
             {
-                Cancha = r.Cancha.Nombre,
-                Hora = r.FechaHora.ToHoraFormato(),
-                r.DuracionMinutos,
-                Cliente = r.ClienteNombre,
-                Estado = r.EstadoPago
+                id = r.Id,
+                title = $"{r.Cancha.Nombre} - {r.ClienteNombre} ({r.EstadoPago})",
+                start = r.FechaHora,
+                end = r.FechaHora.AddMinutes(r.DuracionMinutos)
             });
 
             return Ok(resultado);
@@ -590,6 +589,28 @@ namespace FutbolYa.WebAPI.Controllers
 
             return Ok("Saliste de la reserva.");
         }
+
+        [HttpGet("mias")]
+        [Authorize(Roles = "establecimiento")]
+        public async Task<IActionResult> GetMisCanchas()
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+            var canchas = await _context.Canchas
+                .Where(c => c.UsuarioEstablecimientoId == userId)
+                .Select(c => new
+                {
+                    id = c.Id,
+                    nombre = c.Nombre,
+                    tipo = c.Tipo,
+                    horaApertura = c.HorarioApertura,
+                    horaCierre = c.HorarioCierre
+                })
+                .ToListAsync();
+
+            return Ok(canchas);
+        }
+
 
     }
 }

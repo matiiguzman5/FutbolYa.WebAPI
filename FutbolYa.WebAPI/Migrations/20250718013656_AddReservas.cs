@@ -16,7 +16,7 @@ namespace FutbolYa.WebAPI.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     CanchaId = table.Column<int>(type: "int", nullable: false),
-                    FechaHora = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    FechaHora = table.Column<DateTime>(type: "datetime", nullable: false),
                     DuracionMinutos = table.Column<int>(type: "int", nullable: false),
                     ClienteNombre = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ClienteTelefono = table.Column<string>(type: "nvarchar(max)", nullable: false),

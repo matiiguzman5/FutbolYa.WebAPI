@@ -9,15 +9,15 @@ namespace FutbolYa.WebAPI.Models
         public string Nombre { get; set; }
         public string Tipo { get; set; }
         public string Superficie { get; set; }
-        public string Estado { get; set; }
+        //public string Estado { get; set; }
 
         public decimal PrecioBaseHora { get; set; }
         public decimal PrecioNocturno { get; set; }
         public decimal PrecioFinDeSemana { get; set; }
         public decimal PrecioPremium { get; set; }
 
-        public TimeSpan HorarioApertura { get; set; }
-        public TimeSpan HorarioCierre { get; set; }
+        public TimeSpan HorarioApertura { get; set; } = new TimeSpan(8, 0, 0);
+        public TimeSpan HorarioCierre { get; set; } = new TimeSpan(23, 0, 0);
         public string? BloquesMantenimiento { get; set; }
         public string? DiasNoDisponibles { get; set; }
 
