@@ -103,6 +103,42 @@ namespace FutbolYa.WebAPI.Controllers
             return Ok(canchas);
         }
 
+        [HttpGet("de/{establecimientoId}/disponibles")]
+        public async Task<IActionResult> DisponiblesEnHorario(int establecimientoId, [FromQuery] DateTime fechaHora)
+        {
+            var canchas = await _context.Canchas
+                .Where(c => c.UsuarioEstablecimientoId == establecimientoId)
+                .ToListAsync();
+
+            var libres = new List<object>();
+            var fin = fechaHora.AddMinutes(60);
+
+            foreach (var cancha in canchas)
+            {
+                bool ocupado = await _context.Reservas.AnyAsync(r =>
+                    r.CanchaId == cancha.Id &&
+                    r.FechaHora < fin &&
+                    r.FechaHora.AddMinutes(r.DuracionMinutos) > fechaHora
+                );
+
+                if (!ocupado)
+                {
+                    libres.Add(new
+                    {
+                        cancha.Id,
+                        cancha.Nombre,
+                        cancha.Tipo,
+                        cancha.Superficie,
+                        PrecioBaseHora = cancha.PrecioBaseHora
+                    });
+                }
+            }
+
+            return Ok(libres);
+        }
+
+
+
         // GET: api/canchas/disponibles  (listado simple para la app)
         [AllowAnonymous]
         [HttpGet("disponibles")]
