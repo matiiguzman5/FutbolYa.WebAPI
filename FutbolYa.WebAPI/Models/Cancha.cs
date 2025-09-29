@@ -16,8 +16,8 @@ namespace FutbolYa.WebAPI.Models
         public decimal PrecioFinDeSemana { get; set; }
         public decimal PrecioPremium { get; set; }
 
-        public TimeSpan HorarioApertura { get; set; }
-        public TimeSpan HorarioCierre { get; set; }
+        public TimeSpan HorarioApertura { get; set; } = new TimeSpan(8, 0, 0);
+        public TimeSpan HorarioCierre { get; set; } = new TimeSpan(23, 0, 0);
         public string? BloquesMantenimiento { get; set; }
         public string? DiasNoDisponibles { get; set; }
 
