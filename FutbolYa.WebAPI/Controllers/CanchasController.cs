@@ -104,7 +104,6 @@ namespace FutbolYa.WebAPI.Controllers
             return Ok(canchas);
         }
 
-        // GET: api/canchas/de/5/disponibles?fechaHora=2025-09-30T15:00
         [HttpGet("de/{establecimientoId}/disponibles")]
         public async Task<IActionResult> DisponiblesEnHorario(int establecimientoId, [FromQuery] DateTime fechaHora)
         {
@@ -119,8 +118,8 @@ namespace FutbolYa.WebAPI.Controllers
             {
                 bool ocupado = await _context.Reservas.AnyAsync(r =>
                     r.CanchaId == cancha.Id &&
-                    fechaHora < r.FechaHora.AddMinutes(r.DuracionMinutos) &&
-                    fin > r.FechaHora
+                    r.FechaHora < fin &&
+                    r.FechaHora.AddMinutes(r.DuracionMinutos) > fechaHora
                 );
 
                 if (!ocupado)
@@ -131,13 +130,14 @@ namespace FutbolYa.WebAPI.Controllers
                         cancha.Nombre,
                         cancha.Tipo,
                         cancha.Superficie,
-                        cancha.Estado
+                        PrecioBaseHora = cancha.PrecioBaseHora
                     });
                 }
             }
 
             return Ok(libres);
         }
+
 
 
         // GET: api/canchas/disponibles  (listado simple para la app)
