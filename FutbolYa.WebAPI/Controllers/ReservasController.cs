@@ -71,7 +71,7 @@ namespace FutbolYa.WebAPI.Controllers
             var reserva = new Reserva
             {
                 CanchaId = dto.CanchaId,
-                FechaHora = dto.FechaHora,
+                FechaHora = dto.FechaHora.ToLocalTime(),
                 DuracionMinutos = duracion,
                 ClienteNombre = userRol == "jugador" ? usuario.Nombre : dto.ClienteNombre,
                 ClienteTelefono = userRol == "jugador" ? usuario.Telefono ?? "No informado" : dto.ClienteTelefono,
@@ -183,7 +183,7 @@ namespace FutbolYa.WebAPI.Controllers
             var reserva = new Reserva
             {
                 CanchaId = canchaId,
-                FechaHora = dto.FechaHora,
+                FechaHora = dto.FechaHora.ToLocalTime(),
                 DuracionMinutos = duracion,
                 ClienteNombre = usuario.Nombre,
                 ClienteTelefono = usuario.Telefono ?? "No informado",
@@ -425,13 +425,16 @@ namespace FutbolYa.WebAPI.Controllers
                 return BadRequest("Ya estás unido a esta reserva");
 
             // Verifica límite según tipo de cancha
-            int capacidadMaxima = reserva.Cancha.Tipo switch
+            var tipo = reserva.Cancha.Tipo?.Trim().ToUpper();
+
+            int capacidadMaxima = tipo switch
             {
-                "F5" => 10,
-                "F7" => 14,
-                "F11" => 22,
-                _ => 10 // valor por defecto si no matchea
+                "F5" or "FUTBOL-5" => 10,
+                "F7" or "FUTBOL-7" => 14,
+                "F11" or "FUTBOL-11" => 22,
+                _ => 10
             };
+
 
             if (reserva.Jugadores.Count >= capacidadMaxima)
                 return BadRequest("La reserva ya alcanzó el máximo de jugadores");
@@ -474,13 +477,16 @@ namespace FutbolYa.WebAPI.Controllers
             if (creador != null && !jugadores.Any(j => j.Id == creador.Id))
                 jugadores.Insert(0, creador);
 
-            int capacidad = reserva.Cancha.Tipo switch
+            var tipo = reserva.Cancha.Tipo?.Trim().ToUpper();
+
+            int capacidad = tipo switch
             {
-                "F5" => 10,
-                "F7" => 14,
-                "F11" => 22,
+                "F5" or "FUTBOL-5" => 10,
+                "F7" or "FUTBOL-7" => 14,
+                "F11" or "FUTBOL-11" => 22,
                 _ => 10
             };
+
 
             var resultado = jugadores.Select(j => new
             {
@@ -504,7 +510,7 @@ namespace FutbolYa.WebAPI.Controllers
 
         // GET: api/reservas/disponibles
         [HttpGet("disponibles")]
-        [Authorize] 
+        [Authorize]
         public async Task<IActionResult> VerReservasDisponibles()
         {
             var ahora = DateTime.Now;
@@ -520,37 +526,39 @@ namespace FutbolYa.WebAPI.Controllers
                 .ToListAsync();
 
             var resultado = reservas
-                .Where(r =>
+                .Select(r =>
                 {
-                    int capacidad = r.Cancha.Tipo switch
+                    var tipo = r.Cancha.Tipo?.Trim().ToUpper();
+                    int capacidad = tipo switch
                     {
-                        "F5" => 10,
-                        "F7" => 14,
-                        "F11" => 22,
+                        "F5" or "FUTBOL-5" => 10,
+                        "F7" or "FUTBOL-7" => 14,
+                        "F11" or "FUTBOL-11" => 22,
                         _ => 10
                     };
 
                     int jugadores = r.Jugadores.Count;
 
-                    return jugadores < capacidad;
+                    return new
+                    {
+                        r.Id,
+                        r.FechaHora,
+                        r.CanchaId,
+                        NombreCancha = r.Cancha.Nombre,
+                        Tipo = r.Cancha.Tipo,
+                        Superficie = r.Cancha.Superficie,
+                        Capacidad = capacidad,
+                        Anotados = jugadores,
+                        EspaciosDisponibles = capacidad - jugadores,
+                        Observaciones = r.Observaciones,
+                        EstadoPago = r.EstadoPago
+                    };
                 })
-                .Select(r => new
-                {
-                    r.Id,
-                    r.FechaHora,
-                    r.CanchaId,
-                    NombreCancha = r.Cancha.Nombre,
-                    Tipo = r.Cancha.Tipo,
-                    Superficie = r.Cancha.Superficie,
-                    Capacidad = r.Cancha.Tipo == "F5" ? 10 : r.Cancha.Tipo == "F7" ? 14 : 22,
-                    Anotados = r.Jugadores.Count,
-                    EspaciosDisponibles = (r.Cancha.Tipo == "F5" ? 10 : r.Cancha.Tipo == "F7" ? 14 : 22) - r.Jugadores.Count,
-                    Observaciones = r.Observaciones,
-                    EstadoPago = r.EstadoPago
-                });
+                .Where(r => r.Anotados < r.Capacidad);
 
             return Ok(resultado);
         }
+
 
         [HttpDelete("{reservaId}/salir")]
         public async Task<IActionResult> SalirDeReserva(int reservaId)
