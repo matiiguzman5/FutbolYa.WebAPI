@@ -12,10 +12,14 @@ namespace FutbolYa.WebAPI.Models
         public string? Telefono { get; set; }
         public string? Posicion { get; set; }
         public string? FotoPerfil { get; set; }
+        public string? Ubicacion { get; set; }
+
 
         public List<Calificacion> Calificaciones { get; set; } = new();
 
         [JsonIgnore]
         public ICollection<Partido> Partidos { get; set; } = new List<Partido>();
+        public ICollection<Cancha> Canchas { get; set; } = new List<Cancha>();
+
     }
 }

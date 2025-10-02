@@ -40,13 +40,13 @@ namespace FutbolYa.WebAPI.Controllers
             if (dto.FechaHora < DateTime.Now)
                 return BadRequest("No se puede crear una reserva en el pasado.");
 
-            if (dto.FechaHora.TimeOfDay < cancha.HorarioApertura ||
+           /* if (dto.FechaHora.TimeOfDay < cancha.HorarioApertura ||
                 dto.FechaHora.AddMinutes(duracion).TimeOfDay > cancha.HorarioCierre)
                 return BadRequest("La reserva está fuera del horario permitido de la cancha.");
 
             var diaReserva = dto.FechaHora.ToString("dddd", new CultureInfo("es-ES"));
             if (!string.IsNullOrEmpty(cancha.DiasNoDisponibles) && cancha.DiasNoDisponibles.Contains(diaReserva))
-                return BadRequest($"La cancha no está disponible los días {diaReserva}.");
+                return BadRequest($"La cancha no está disponible los días {diaReserva}."); */
 
             var fin = dto.FechaHora.AddMinutes(duracion);
             var conflicto = await _context.Reservas.AnyAsync(r =>
@@ -152,13 +152,13 @@ namespace FutbolYa.WebAPI.Controllers
             if (dto.FechaHora < DateTime.Now)
                 return BadRequest("No se puede crear una reserva en el pasado.");
 
-            if (dto.FechaHora.TimeOfDay < cancha.HorarioApertura ||
+           /* if (dto.FechaHora.TimeOfDay < cancha.HorarioApertura ||
                 dto.FechaHora.AddMinutes(duracion).TimeOfDay > cancha.HorarioCierre)
                 return BadRequest("La reserva está fuera del horario permitido de la cancha.");
 
             var diaReserva = dto.FechaHora.ToString("dddd", new CultureInfo("es-ES"));
             if (!string.IsNullOrEmpty(cancha.DiasNoDisponibles) && cancha.DiasNoDisponibles.Contains(diaReserva))
-                return BadRequest($"La cancha no está disponible los días {diaReserva}.");
+                return BadRequest($"La cancha no está disponible los días {diaReserva}."); */
 
             var fin = dto.FechaHora.AddMinutes(duracion);
             var conflicto = await _context.Reservas.AnyAsync(r =>
@@ -517,12 +517,9 @@ namespace FutbolYa.WebAPI.Controllers
             var reservas = await _context.Reservas
                 .Include(r => r.Cancha)
                 .Include(r => r.Jugadores)
-                .Where(r =>
-                    r.FechaHora > ahora &&
-                    r.FechaHora.TimeOfDay >= r.Cancha.HorarioApertura &&
-                    r.FechaHora.AddMinutes(r.DuracionMinutos).TimeOfDay <= r.Cancha.HorarioCierre
-                )
+                .Where(r => r.FechaHora > ahora)
                 .ToListAsync();
+
 
             var resultado = reservas
                 .Select(r =>
@@ -603,8 +600,6 @@ namespace FutbolYa.WebAPI.Controllers
                     id = c.Id,
                     nombre = c.Nombre,
                     tipo = c.Tipo,
-                    horaApertura = c.HorarioApertura,
-                    horaCierre = c.HorarioCierre
                 })
                 .ToListAsync();
 
