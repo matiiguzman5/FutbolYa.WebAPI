@@ -30,18 +30,9 @@ namespace FutbolYa.WebAPI.Controllers
                 Nombre = dto.Nombre,
                 Tipo = dto.Tipo,
                 Superficie = dto.Superficie,
+                Estado = dto.Estado,
                 PrecioBaseHora = dto.PrecioBaseHora,
-                PrecioNocturno = dto.PrecioNocturno,
                 PrecioFinDeSemana = dto.PrecioFinDeSemana,
-                PrecioPremium = dto.PrecioPremium,
-                HorarioApertura = dto.HorarioApertura,
-                HorarioCierre = dto.HorarioCierre,
-                BloquesMantenimiento = dto.BloquesMantenimiento,
-                DiasNoDisponibles = dto.DiasNoDisponibles,
-                LogReparaciones = dto.LogReparaciones,
-                EstadoEquipamiento = dto.EstadoEquipamiento,
-                NotasEspeciales = dto.NotasEspeciales,
-                ProximoMantenimiento = dto.ProximoMantenimiento,
                 UsuarioEstablecimientoId = userId
             };
 
@@ -68,22 +59,12 @@ namespace FutbolYa.WebAPI.Controllers
             if (dto.Nombre != null) cancha.Nombre = dto.Nombre;
             if (dto.Tipo != null) cancha.Tipo = dto.Tipo;
             if (dto.Superficie != null) cancha.Superficie = dto.Superficie;
+            if (dto.Estado != null) cancha.Estado = dto.Estado;
 
 
             if (dto.PrecioBaseHora.HasValue) cancha.PrecioBaseHora = dto.PrecioBaseHora.Value;
-            if (dto.PrecioNocturno.HasValue) cancha.PrecioNocturno = dto.PrecioNocturno.Value;
             if (dto.PrecioFinDeSemana.HasValue) cancha.PrecioFinDeSemana = dto.PrecioFinDeSemana.Value;
-            if (dto.PrecioPremium.HasValue) cancha.PrecioPremium = dto.PrecioPremium.Value;
 
-            if (dto.HorarioApertura.HasValue) cancha.HorarioApertura = dto.HorarioApertura.Value;
-            if (dto.HorarioCierre.HasValue)  cancha.HorarioCierre  = dto.HorarioCierre.Value;
-
-            if (dto.BloquesMantenimiento != null) cancha.BloquesMantenimiento = dto.BloquesMantenimiento;
-            if (dto.DiasNoDisponibles != null)    cancha.DiasNoDisponibles = dto.DiasNoDisponibles;
-            if (dto.LogReparaciones != null)      cancha.LogReparaciones = dto.LogReparaciones;
-            if (dto.EstadoEquipamiento != null)   cancha.EstadoEquipamiento = dto.EstadoEquipamiento;
-            if (dto.NotasEspeciales != null)      cancha.NotasEspeciales = dto.NotasEspeciales;
-            if (dto.ProximoMantenimiento.HasValue) cancha.ProximoMantenimiento = dto.ProximoMantenimiento.Value;
 
             await _context.SaveChangesAsync();
             return Ok("Cancha actualizada correctamente");
@@ -154,8 +135,6 @@ namespace FutbolYa.WebAPI.Controllers
                 c.Superficie,
 
                 c.PrecioBaseHora,
-                c.HorarioApertura,
-                c.HorarioCierre
             });
 
             return Ok(resultado);
@@ -198,8 +177,6 @@ namespace FutbolYa.WebAPI.Controllers
                     c.Superficie,
 
                     c.PrecioBaseHora,
-                    c.HorarioApertura,
-                    c.HorarioCierre
                 })
                 .ToListAsync();
 
