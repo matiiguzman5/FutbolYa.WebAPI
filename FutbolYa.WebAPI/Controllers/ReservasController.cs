@@ -521,6 +521,8 @@ namespace FutbolYa.WebAPI.Controllers
                 .ToListAsync();
 
 
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
             var resultado = reservas
                 .Select(r =>
                 {
@@ -534,6 +536,7 @@ namespace FutbolYa.WebAPI.Controllers
                     };
 
                     int jugadores = r.Jugadores.Count;
+                    bool yaEstoyUnido = r.Jugadores.Any(j => j.UsuarioId == userId); // 👈
 
                     return new
                     {
@@ -547,10 +550,12 @@ namespace FutbolYa.WebAPI.Controllers
                         Anotados = jugadores,
                         EspaciosDisponibles = capacidad - jugadores,
                         Observaciones = r.Observaciones,
-                        EstadoPago = r.EstadoPago
+                        EstadoPago = r.EstadoPago,
+                        YaEstoyUnido = yaEstoyUnido
                     };
                 })
-                .Where(r => r.Anotados < r.Capacidad);
+                .Where(r => r.Anotados < r.Capacidad || r.YaEstoyUnido);
+
 
             return Ok(resultado);
         }

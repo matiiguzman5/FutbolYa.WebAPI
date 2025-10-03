@@ -71,6 +71,31 @@ namespace FutbolYa.WebAPI.Controllers
             return Ok(new { mensaje = "Usuario actualizado" });
         }
 
+        // GET: api/usuarios/estadisticas
+        [HttpGet("estadisticas")]
+        public async Task<IActionResult> VerEstadisticas()
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+
+            // Total de partidos jugados
+            var partidosJugados = await _context.PartidoUsuarios
+                .CountAsync(pu => pu.JugadoresId == userId);
+
+            // Promedio de valoraciones
+            var valoraciones = await _context.Calificaciones
+                .Where(c => c.EvaluadoId == userId)
+                .Select(c => c.Puntaje)
+                .ToListAsync();
+
+            double promedio = valoraciones.Any() ? valoraciones.Average() : 0;
+
+            return Ok(new
+            {
+                PartidosJugados = partidosJugados,
+                ValoracionPromedio = promedio
+            });
+        }
+
 
 
         // POST: api/Usuarios/subir-foto
@@ -152,6 +177,52 @@ namespace FutbolYa.WebAPI.Controllers
 
             return Ok("Usuario eliminado.");
         }
+
+        [HttpPut("{id}/editar-ubicacion")]
+        [Authorize(Roles = "administrador")]
+        public async Task<IActionResult> EditarUbicacion(int id, [FromBody] string nuevaUbicacion)
+        {
+            var usuario = await _context.Usuarios.FindAsync(id); 
+            if (usuario == null) return NotFound("Usuario no encontrado.");
+
+            if (usuario.Rol != "establecimiento")
+                return BadRequest("Solo los establecimientos tienen ubicación.");
+
+            usuario.Ubicacion = nuevaUbicacion;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { mensaje = "Ubicación actualizada", usuario.Id, usuario.Nombre, usuario.Ubicacion });
+        }
+
+
+        [HttpPut("editar-perfil")]
+        public async Task<IActionResult> EditarPerfil([FromBody] EditarPerfilDTO dto)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            var usuario = await _context.Usuarios.FindAsync(userId);
+
+            if (usuario == null)
+                return NotFound("Usuario no encontrado.");
+
+            if (!string.IsNullOrWhiteSpace(dto.Nombre))
+                usuario.Nombre = dto.Nombre;
+
+            if (!string.IsNullOrWhiteSpace(dto.Telefono))
+                usuario.Telefono = dto.Telefono;
+
+            if (!string.IsNullOrWhiteSpace(dto.Posicion))
+                usuario.Posicion = dto.Posicion;
+
+            if (!string.IsNullOrWhiteSpace(dto.Contraseña))
+                usuario.Contraseña = dto.Contraseña;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { mensaje = "Perfil actualizado" });
+        }
+
+
+
 
         [AllowAnonymous]
         [HttpGet("establecimientos")]

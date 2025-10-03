@@ -15,6 +15,8 @@ namespace FutbolYa.WebAPI.Models
         public DbSet<Cancha> Canchas { get; set; }
         public DbSet<Reserva> Reservas { get; set; }
         public DbSet<ReservaUsuario> ReservaUsuarios { get; set; }
+        public DbSet<PartidoUsuario> PartidoUsuarios { get; set; }
+
 
 
 
@@ -59,6 +61,7 @@ namespace FutbolYa.WebAPI.Models
                 .OnDelete(DeleteBehavior.Cascade);
 
 
+
             modelBuilder.Entity<Reserva>()
                 .HasOne(r => r.UsuarioEstablecimiento)
                 .WithMany()
@@ -78,6 +81,24 @@ namespace FutbolYa.WebAPI.Models
                 .WithMany()
                 .HasForeignKey(ru => ru.UsuarioId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PartidoUsuario>()
+                .ToTable("PartidoUsuario"); 
+
+            modelBuilder.Entity<PartidoUsuario>()
+                .HasKey(pu => new { pu.PartidosId, pu.JugadoresId });
+
+            modelBuilder.Entity<PartidoUsuario>()
+                .HasOne(pu => pu.Partido)
+                .WithMany(p => p.Jugadores)
+                .HasForeignKey(pu => pu.PartidosId);
+
+            modelBuilder.Entity<PartidoUsuario>()
+                .HasOne(pu => pu.Jugador)
+                .WithMany()
+                .HasForeignKey(pu => pu.JugadoresId);
+
+
 
         }
     }

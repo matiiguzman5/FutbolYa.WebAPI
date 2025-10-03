@@ -22,35 +22,59 @@ namespace FutbolYa.WebAPI.Controllers
         public async Task<IActionResult> ObtenerTodos()
         {
             var partidos = await _context.Partidos
+                .Include(p => p.Organizador) 
                 .Include(p => p.Jugadores)
+                    .ThenInclude(pu => pu.Jugador) 
                 .ToListAsync();
-            return Ok(partidos);
+
+            var resultado = partidos.Select(p => new
+            {
+                p.Id,
+                p.Ubicacion,
+                p.Fecha,
+                Organizador = new
+                {
+                    p.Organizador.Id,
+                    p.Organizador.Nombre
+                },
+                Jugadores = p.Jugadores.Select(j => new
+                {
+                    j.JugadoresId,
+                    j.Jugador.Nombre,
+                    j.Jugador.Posicion
+                })
+            });
+
+            return Ok(resultado);
         }
+
 
         [Authorize(Roles = "establecimiento")]
         [Authorize(Roles = "administrador")]
         [Authorize]
         [HttpPost]
+        [HttpPost]
         public async Task<IActionResult> CrearPartido([FromBody] PartidoDTO dto)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
-                return Unauthorized("Token inválido");
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
             var partido = new Partido
             {
-                
                 Ubicacion = dto.Ubicacion,
                 Fecha = dto.Fecha,
                 OrganizadorId = userId,
-                Jugadores = new List<Usuario>()
+                Jugadores = new List<PartidoUsuario>
+        {
+            new PartidoUsuario { JugadoresId = userId } // organizador se inscribe
+        }
             };
 
             _context.Partidos.Add(partido);
             await _context.SaveChangesAsync();
 
-            return Ok(new { mensaje = "Partido creado correctamente", partido.Id });
+            return Ok(new { mensaje = "Partido creado", partido.Id });
         }
+
 
 
         // GET: api/partidos/buscar
@@ -78,19 +102,26 @@ namespace FutbolYa.WebAPI.Controllers
                 .Include(p => p.Jugadores)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
-            var usuario = await _context.Usuarios.FindAsync(usuarioId);
+            if (partido == null)
+                return NotFound("Partido no encontrado");
 
-            if (partido == null || usuario == null)
-                return NotFound("Partido o usuario no encontrado");
-
-            if (partido.Jugadores.Any(j => j.Id == usuarioId))
+            // Validar que no esté ya inscripto
+            if (partido.Jugadores.Any(j => j.JugadoresId == usuarioId))
                 return BadRequest("El usuario ya está inscrito en este partido");
 
-            partido.Jugadores.Add(usuario);
+            // Crear relación en tabla intermedia
+            var partidoUsuario = new PartidoUsuario
+            {
+                PartidosId = id,
+                JugadoresId = usuarioId
+            };
+
+            _context.PartidoUsuarios.Add(partidoUsuario);
             await _context.SaveChangesAsync();
 
             return Ok("Usuario inscrito correctamente");
         }
+
     }
 
     public class PartidoDTO

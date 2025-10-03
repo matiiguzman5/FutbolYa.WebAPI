@@ -35,8 +35,8 @@ namespace FutbolYa.WebAPI.Controllers
                 return NotFound("Partido no encontrado");
 
             // Validar que ambos jugaron ese partido
-            var jugoEvaluador = partido.Jugadores.Any(j => j.Id == userId);
-            var jugoEvaluado = partido.Jugadores.Any(j => j.Id == dto.EvaluadoId);
+            var jugoEvaluador = partido.Jugadores.Any(j => j.JugadoresId == userId);
+            var jugoEvaluado = partido.Jugadores.Any(j => j.JugadoresId == dto.EvaluadoId);
 
             if (!jugoEvaluador || !jugoEvaluado)
                 return BadRequest("Solo podés calificar a jugadores que participaron en tu mismo partido.");
@@ -115,6 +115,7 @@ namespace FutbolYa.WebAPI.Controllers
 
             return Ok(resultado);
         }
+
         // GET: api/calificaciones/mias
         [HttpGet("mias")]
         public async Task<IActionResult> VerMisCalificaciones()
@@ -124,23 +125,30 @@ namespace FutbolYa.WebAPI.Controllers
             var calificaciones = await _context.Calificaciones
                 .Where(c => c.EvaluadoId == userId)
                 .Include(c => c.Evaluador)
+                .Include(c => c.Partido)
                 .OrderByDescending(c => c.Fecha)
                 .ToListAsync();
 
-            if (!calificaciones.Any())
-                return Ok(new { mensaje = "Todavía no recibiste calificaciones." });
-
             var resultado = calificaciones.Select(c => new
             {
-                c.PartidoId,
+                PartidoId = c.PartidoId,
+                PartidoInfo = $"{c.Partido.Ubicacion} - {c.Partido.Fecha:dd/MM/yyyy HH:mm}",
                 c.Puntaje,
                 c.Comentario,
                 c.Fecha,
-                Evaluador = new { c.Evaluador.Id, c.Evaluador.Nombre }
+                Evaluador = new
+                {
+                    c.Evaluador.Id,
+                    c.Evaluador.Nombre
+                }
             });
 
             return Ok(resultado);
         }
+
+
+
+
 
 
     }
