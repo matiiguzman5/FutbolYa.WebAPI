@@ -1,5 +1,4 @@
 ﻿using FutbolYa.WebAPI.Models;
-using System.Text.Json.Serialization;
 
 public class Partido
 {
@@ -8,9 +7,7 @@ public class Partido
     public DateTime Fecha { get; set; }
 
     public int OrganizadorId { get; set; }
+    public Usuario Organizador { get; set; }
 
-    [JsonIgnore] // 👈 Oculta Organizador del binding de entrada
-    public Usuario? Organizador { get; set; }
-
-    public ICollection<Usuario> Jugadores { get; set; } = new List<Usuario>();
+    public ICollection<PartidoUsuario> Jugadores { get; set; } = new List<PartidoUsuario>();
 }
