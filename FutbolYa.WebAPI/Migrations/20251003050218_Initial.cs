@@ -39,8 +39,7 @@ namespace FutbolYa.WebAPI.Migrations
                     Tipo = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Superficie = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Estado = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PrecioBaseHora = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    PrecioFinDeSemana = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Precio = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     UsuarioEstablecimientoId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>

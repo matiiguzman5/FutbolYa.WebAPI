@@ -10,8 +10,7 @@ namespace FutbolYa.WebAPI.Models
         public string Tipo { get; set; }
         public string Superficie { get; set; }
         public string Estado { get; set; }
-        public decimal PrecioBaseHora { get; set; }
-        public decimal PrecioFinDeSemana { get; set; }
+        public decimal Precio{ get; set; }
         public int UsuarioEstablecimientoId { get; set; }
 
         [JsonIgnore]
