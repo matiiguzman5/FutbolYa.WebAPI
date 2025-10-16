@@ -30,9 +30,8 @@ namespace FutbolYa.WebAPI.Controllers
                 Nombre = dto.Nombre,
                 Tipo = dto.Tipo,
                 Superficie = dto.Superficie,
-                Estado = dto.Estado,
-                PrecioBaseHora = dto.PrecioBaseHora,
-                PrecioFinDeSemana = dto.PrecioFinDeSemana,
+                Estado = "Disponible",
+                Precio = dto.Precio,
                 UsuarioEstablecimientoId = userId
             };
 
@@ -62,8 +61,7 @@ namespace FutbolYa.WebAPI.Controllers
             if (dto.Estado != null) cancha.Estado = dto.Estado;
 
 
-            if (dto.PrecioBaseHora.HasValue) cancha.PrecioBaseHora = dto.PrecioBaseHora.Value;
-            if (dto.PrecioFinDeSemana.HasValue) cancha.PrecioFinDeSemana = dto.PrecioFinDeSemana.Value;
+            if (dto.Precio.HasValue) cancha.Precio = dto.Precio.Value;
 
 
             await _context.SaveChangesAsync();
@@ -110,7 +108,7 @@ namespace FutbolYa.WebAPI.Controllers
                         cancha.Nombre,
                         cancha.Tipo,
                         cancha.Superficie,
-                        PrecioBaseHora = cancha.PrecioBaseHora
+                        Precio = cancha.Precio
                     });
                 }
             }
@@ -134,7 +132,7 @@ namespace FutbolYa.WebAPI.Controllers
                 c.Tipo,
                 c.Superficie,
 
-                c.PrecioBaseHora,
+                c.Precio,
             });
 
             return Ok(resultado);
@@ -176,7 +174,7 @@ namespace FutbolYa.WebAPI.Controllers
                     c.Tipo,
                     c.Superficie,
 
-                    c.PrecioBaseHora,
+                    c.Precio,
                 })
                 .ToListAsync();
 
