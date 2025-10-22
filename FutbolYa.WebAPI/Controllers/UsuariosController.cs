@@ -34,7 +34,10 @@ namespace FutbolYa.WebAPI.Controllers
                     u.Nombre,
                     u.Correo,
                     u.Rol,
-                    u.FotoPerfil
+                    u.FotoPerfil,
+                    u.Telefono,
+                    u.Ubicacion,
+                    u.Posicion
                 })
                 .FirstOrDefaultAsync();
 
@@ -65,7 +68,8 @@ namespace FutbolYa.WebAPI.Controllers
             if (!string.IsNullOrWhiteSpace(body?.Nombre)) u.Nombre = body.Nombre;
             if (!string.IsNullOrWhiteSpace(body?.Telefono)) u.Telefono = body.Telefono;
             if (!string.IsNullOrWhiteSpace(body?.Rol)) u.Rol = body.Rol;
-            if (!string.IsNullOrWhiteSpace(body?.Contraseña)) u.Contraseña = body.Contraseña; 
+            if (!string.IsNullOrWhiteSpace(body?.Contraseña)) u.Contraseña = body.Contraseña;
+            if (!string.IsNullOrWhiteSpace(body?.Ubicacion)) u.Ubicacion = body.Ubicacion;
 
             await _context.SaveChangesAsync();
             return Ok(new { mensaje = "Usuario actualizado" });
@@ -210,6 +214,9 @@ namespace FutbolYa.WebAPI.Controllers
             if (!string.IsNullOrWhiteSpace(dto.Telefono))
                 usuario.Telefono = dto.Telefono;
 
+            if (!string.IsNullOrWhiteSpace(dto.Ubicacion))
+                usuario.Ubicacion = dto.Ubicacion;
+
             if (!string.IsNullOrWhiteSpace(dto.Posicion))
                 usuario.Posicion = dto.Posicion;
 
@@ -229,7 +236,7 @@ namespace FutbolYa.WebAPI.Controllers
         public async Task<IActionResult> ListarEstablecimientos()
         {
             var estabs = await _context.Usuarios
-                .Where(u => u.Rol == "establecimiento")
+                .Where(u => u.Rol.ToLower() == "establecimiento") // ✅ compara en minúsculas para evitar errores
                 .Include(u => u.Canchas)
                 .Select(u => new {
                     u.Id,
@@ -237,13 +244,21 @@ namespace FutbolYa.WebAPI.Controllers
                     u.Correo,
                     u.Telefono,
                     u.Ubicacion,
-                    Canchas = u.Canchas.Select(c => new { c.Id, c.Nombre, c.Tipo }).ToList()
+                    u.FotoPerfil, // ✅ agregado
+                    Canchas = u.Canchas.Select(c => new {
+                        c.Id,
+                        c.Nombre,
+                        c.Tipo,
+                        c.Superficie,
+                        c.Estado,
+                        c.Precio
+                    }).ToList()
                 })
                 .ToListAsync();
 
-
             return Ok(estabs);
         }
+
 
 
 
