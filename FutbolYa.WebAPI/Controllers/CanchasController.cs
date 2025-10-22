@@ -108,7 +108,7 @@ namespace FutbolYa.WebAPI.Controllers
                         cancha.Nombre,
                         cancha.Tipo,
                         cancha.Superficie,
-                        Precio = cancha.Precio
+                        cancha.Precio,
                     });
                 }
             }
@@ -131,7 +131,6 @@ namespace FutbolYa.WebAPI.Controllers
                 c.Nombre,
                 c.Tipo,
                 c.Superficie,
-
                 c.Precio,
             });
 
@@ -173,7 +172,6 @@ namespace FutbolYa.WebAPI.Controllers
                     c.Nombre,
                     c.Tipo,
                     c.Superficie,
-
                     c.Precio,
                 })
                 .ToListAsync();
