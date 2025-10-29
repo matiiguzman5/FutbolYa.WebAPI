@@ -23,12 +23,17 @@ namespace FutbolYa.WebAPI.Models
         [Required]
         public string ClienteTelefono { get; set; }
 
+        public string EstadoPago { get; set; } = "Pendiente";
+        public string MetodoPago { get; set; }
+
+        public bool SedeConfirmoTransferencia { get; set; }
+
         public ICollection<ReservaUsuario> Jugadores { get; set; } = new List<ReservaUsuario>();
 
         public string? ClienteEmail { get; set; }
         public bool EsFrecuente { get; set; }
+        public DateTime? FechaPago { get; set; }
 
-        public string EstadoPago { get; set; } // Pagado / Pendiente / Seña
         public string? Observaciones { get; set; }
 
         public int UsuarioEstablecimientoId { get; set; }

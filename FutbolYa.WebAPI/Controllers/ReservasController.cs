@@ -40,14 +40,6 @@ namespace FutbolYa.WebAPI.Controllers
             if (dto.FechaHora < DateTime.Now)
                 return BadRequest("No se puede crear una reserva en el pasado.");
 
-           /* if (dto.FechaHora.TimeOfDay < cancha.HorarioApertura ||
-                dto.FechaHora.AddMinutes(duracion).TimeOfDay > cancha.HorarioCierre)
-                return BadRequest("La reserva está fuera del horario permitido de la cancha.");
-
-            var diaReserva = dto.FechaHora.ToString("dddd", new CultureInfo("es-ES"));
-            if (!string.IsNullOrEmpty(cancha.DiasNoDisponibles) && cancha.DiasNoDisponibles.Contains(diaReserva))
-                return BadRequest($"La cancha no está disponible los días {diaReserva}."); */
-
             var fin = dto.FechaHora.AddMinutes(duracion);
             var conflicto = await _context.Reservas.AnyAsync(r =>
                 r.CanchaId == dto.CanchaId &&
@@ -77,17 +69,19 @@ namespace FutbolYa.WebAPI.Controllers
                 ClienteTelefono = userRol == "jugador" ? usuario.Telefono ?? "No informado" : dto.ClienteTelefono,
                 ClienteEmail = userRol == "jugador" ? usuario.Correo : dto.ClienteEmail,
                 EsFrecuente = false,
-                EstadoPago = "pendiente",
                 Observaciones = dto.Observaciones,
                 UsuarioEstablecimientoId = userRol == "establecimiento"
                     ? userId
-                    : cancha.UsuarioEstablecimientoId
+                    : cancha.UsuarioEstablecimientoId,
+                MetodoPago = dto.MetodoPago,
+                EstadoPago = dto.EstadoPago,
+                SedeConfirmoTransferencia = dto.SedeConfirmoTransferencia,
+                FechaPago = dto.FechaPago
             };
 
             _context.Reservas.Add(reserva);
             await _context.SaveChangesAsync();
 
-            // Se agrega automáticamente al jugador como participante
             _context.ReservaUsuarios.Add(new ReservaUsuario
             {
                 ReservaId = reserva.Id,
@@ -99,6 +93,7 @@ namespace FutbolYa.WebAPI.Controllers
 
             return Ok(new { mensaje = "Reserva creada", reserva.Id });
         }
+
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> CancelarReserva(int id)
@@ -242,80 +237,87 @@ namespace FutbolYa.WebAPI.Controllers
         [HttpGet("mis")]
         public async Task<IActionResult> VerMisReservas()
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-            var userRol = User.FindFirst(ClaimTypes.Role)?.Value;
-
-            // Establecimiento: reservas creadas por él
-            if (userRol == "establecimiento")
+            try
             {
-                var reservas = await _context.Reservas
-                    .Include(r => r.Cancha)
-                    .Where(r => r.UsuarioEstablecimientoId == userId)
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var userRol = User.FindFirst(ClaimTypes.Role)?.Value;
+
+                if (userRol == "establecimiento")
+                {
+                    var reservas = await _context.Reservas
+                        .Include(r => r.Cancha)
+                        .Where(r => r.UsuarioEstablecimientoId == userId)
+                        .ToListAsync();
+
+                    var resultado = reservas.Select(r => new
+                    {
+                        r.Id,
+                        r.CanchaId,
+                        CanchaNombre = r.Cancha?.Nombre,
+                        Fecha = r.FechaHora.ToString("yyyy-MM-ddTHH:mm:ss"),
+                        r.DuracionMinutos,
+                        r.ClienteNombre,
+                        r.ClienteTelefono,
+                        r.ClienteEmail,
+                        r.EstadoPago,
+                        r.Observaciones
+                    });
+
+                    return Ok(resultado);
+                }
+
+                if (userRol == "administrador")
+                {
+                    var reservas = await _context.Reservas
+                        .Include(r => r.Cancha)
+                        .ToListAsync();
+
+                    var resultado = reservas.Select(r => new
+                    {
+                        r.Id,
+                        r.CanchaId,
+                        CanchaNombre = r.Cancha?.Nombre,
+                        Fecha = r.FechaHora.ToString("yyyy-MM-ddTHH:mm:ss"),
+                        r.DuracionMinutos,
+                        r.ClienteNombre,
+                        r.ClienteTelefono,
+                        r.ClienteEmail,
+                        r.EstadoPago,
+                        r.Observaciones
+                    });
+
+                    return Ok(resultado);
+                }
+
+                // jugador
+                var reservasJugador = await _context.ReservaUsuarios
+                    .Where(ru => ru.UsuarioId == userId)
+                    .Include(ru => ru.Reserva)
+                        .ThenInclude(r => r.Cancha)
+                    .Select(ru => ru.Reserva)
                     .ToListAsync();
 
-                var resultado = reservas.Select(r => new
+                var resultadoJugador = reservasJugador.Select(r => new
                 {
                     r.Id,
                     r.CanchaId,
-                    CanchaNombre = r.Cancha.Nombre,
+                    CanchaNombre = r.Cancha?.Nombre,
                     Fecha = r.FechaHora.ToString("yyyy-MM-ddTHH:mm:ss"),
                     r.DuracionMinutos,
                     r.ClienteNombre,
-                    r.ClienteTelefono,
-                    r.ClienteEmail,
                     r.EstadoPago,
                     r.Observaciones
                 });
 
-                return Ok(resultado);
+                return Ok(resultadoJugador);
             }
-
-            // Administrador: ve todas las reservas
-            if (userRol == "administrador")
+            catch (Exception ex)
             {
-                var reservas = await _context.Reservas
-                    .Include(r => r.Cancha)
-                    .ToListAsync();
-
-                var resultado = reservas.Select(r => new
-                {
-                    r.Id,
-                    r.CanchaId,
-                    CanchaNombre = r.Cancha.Nombre,
-                    Fecha = r.FechaHora.ToString("yyyy-MM-ddTHH:mm:ss"),
-                    r.DuracionMinutos,
-                    r.ClienteNombre,
-                    r.ClienteTelefono,
-                    r.ClienteEmail,
-                    r.EstadoPago,
-                    r.Observaciones
-                });
-
-                return Ok(resultado);
+                Console.WriteLine($"[ERROR] VerMisReservas: {ex.Message}");
+                return StatusCode(500, "Error interno del servidor en VerMisReservas.");
             }
-
-            // Jugador: reservas en las que está inscripto o es el cliente
-            var reservasJugador = await _context.ReservaUsuarios
-                .Where(ru => ru.UsuarioId == userId)
-                .Include(ru => ru.Reserva)
-                    .ThenInclude(r => r.Cancha)
-                .Select(ru => ru.Reserva)
-                .ToListAsync();
-
-            var resultadoJugador = reservasJugador.Select(r => new
-            {
-                r.Id,
-                r.CanchaId,
-                CanchaNombre = r.Cancha.Nombre,
-                Fecha = r.FechaHora.ToString("yyyy-MM-ddTHH:mm:ss"),
-                r.DuracionMinutos,
-                r.ClienteNombre,
-                r.EstadoPago,
-                r.Observaciones
-            });
-
-            return Ok(resultadoJugador);
         }
+
 
 
         [HttpGet("cancha/{id}")]
@@ -355,38 +357,46 @@ namespace FutbolYa.WebAPI.Controllers
         }
 
 
-        // GET: api/reservas/agenda
         [HttpGet("agenda")]
         [Authorize(Roles = "establecimiento")]
         public async Task<IActionResult> VerAgenda([FromQuery] DateTime? fecha, [FromQuery] bool semana = false, [FromQuery] int? canchaId = null)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-            var dia = fecha?.Date ?? DateTime.Today;
-
-            var inicio = semana ? dia.StartOfWeek(DayOfWeek.Monday) : dia;
-            var fin = semana ? inicio.AddDays(7) : dia.AddDays(1);
-
-            var query = _context.Reservas
-                .Include(r => r.Cancha)
-                .Where(r => r.UsuarioEstablecimientoId == userId &&
-                            r.FechaHora >= inicio &&
-                            r.FechaHora < fin);
-
-            if (canchaId.HasValue)
-                query = query.Where(r => r.CanchaId == canchaId.Value);
-
-            var reservas = await query.OrderBy(r => r.FechaHora).ToListAsync();
-
-            var resultado = reservas.Select(r => new
+            try
             {
-                id = r.Id,
-                title = $"{r.Cancha.Nombre} - {r.ClienteNombre} ({r.EstadoPago})",
-                start = r.FechaHora,
-                end = r.FechaHora.AddMinutes(r.DuracionMinutos)
-            });
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                var dia = fecha?.Date ?? DateTime.Today;
 
-            return Ok(resultado);
+                var inicio = semana ? dia.StartOfWeek(DayOfWeek.Monday) : dia;
+                var fin = semana ? inicio.AddDays(7) : dia.AddDays(1);
+
+                var query = _context.Reservas
+                    .Include(r => r.Cancha)
+                    .Where(r => r.UsuarioEstablecimientoId == userId &&
+                                r.FechaHora >= inicio &&
+                                r.FechaHora < fin);
+
+                if (canchaId.HasValue)
+                    query = query.Where(r => r.CanchaId == canchaId.Value);
+
+                var reservas = await query.OrderBy(r => r.FechaHora).ToListAsync();
+
+                var resultado = reservas.Select(r => new
+                {
+                    id = r.Id,
+                    title = $"{r.Cancha.Nombre} - {r.ClienteNombre} ({r.EstadoPago})",
+                    start = r.FechaHora,
+                    end = r.FechaHora.AddMinutes(r.DuracionMinutos)
+                });
+
+                return Ok(resultado);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] VerAgenda: {ex.Message}");
+                return StatusCode(500, "Error interno en VerAgenda.");
+            }
         }
+
 
 
         // PUT: api/reservas/5
@@ -507,58 +517,69 @@ namespace FutbolYa.WebAPI.Controllers
         }
 
 
-        // GET: api/reservas/disponibles
         [HttpGet("disponibles")]
-        [Authorize]
+        [AllowAnonymous]
         public async Task<IActionResult> VerReservasDisponibles()
         {
-            var ahora = DateTime.Now;
+            try
+            {
+                var ahora = DateTime.Now;
 
-            var reservas = await _context.Reservas
-                .Include(r => r.Cancha)
-                .Include(r => r.Jugadores)
-                .Where(r => r.FechaHora > ahora)
-                .ToListAsync();
+                var reservas = await _context.Reservas
+                    .Include(r => r.Cancha)
+                    .Include(r => r.Jugadores)
+                    .Where(r => r.FechaHora > ahora)
+                    .ToListAsync();
 
-
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
-
-            var resultado = reservas
-                .Select(r =>
+                int? userId = null;
+                if (User.Identity.IsAuthenticated)
                 {
-                    var tipo = r.Cancha.Tipo?.Trim().ToUpper();
-                    int capacidad = tipo switch
+                    userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+                }
+
+                var resultado = reservas
+                    .Select(r =>
                     {
-                        "F5" or "FUTBOL-5" => 10,
-                        "F7" or "FUTBOL-7" => 14,
-                        "F11" or "FUTBOL-11" => 22,
-                        _ => 10
-                    };
+                        var tipo = r.Cancha.Tipo?.Trim().ToUpper();
+                        int capacidad = tipo switch
+                        {
+                            "F5" or "FUTBOL-5" => 10,
+                            "F7" or "FUTBOL-7" => 14,
+                            "F11" or "FUTBOL-11" => 22,
+                            _ => 10
+                        };
 
-                    int jugadores = r.Jugadores.Count;
-                    bool yaEstoyUnido = r.Jugadores.Any(j => j.UsuarioId == userId); // 👈
+                        int jugadores = r.Jugadores.Count;
+                        bool yaEstoyUnido = userId != null && r.Jugadores.Any(j => j.UsuarioId == userId);
 
-                    return new
-                    {
-                        r.Id,
-                        r.FechaHora,
-                        r.CanchaId,
-                        NombreCancha = r.Cancha.Nombre,
-                        Tipo = r.Cancha.Tipo,
-                        Superficie = r.Cancha.Superficie,
-                        Capacidad = capacidad,
-                        Anotados = jugadores,
-                        EspaciosDisponibles = capacidad - jugadores,
-                        Observaciones = r.Observaciones,
-                        EstadoPago = r.EstadoPago,
-                        YaEstoyUnido = yaEstoyUnido
-                    };
-                })
-                .Where(r => r.Anotados < r.Capacidad || r.YaEstoyUnido);
+                        return new
+                        {
+                            r.Id,
+                            r.FechaHora,
+                            r.CanchaId,
+                            NombreCancha = r.Cancha?.Nombre,
+                            Tipo = r.Cancha?.Tipo,
+                            Superficie = r.Cancha?.Superficie,
+                            Capacidad = capacidad,
+                            Anotados = jugadores,
+                            EspaciosDisponibles = capacidad - jugadores,
+                            Observaciones = r.Observaciones,
+                            EstadoPago = r.EstadoPago,
+                            YaEstoyUnido = yaEstoyUnido
+                        };
+                    })
+                    .Where(r => r.Anotados < r.Capacidad || r.YaEstoyUnido);
 
-
-            return Ok(resultado);
+                return Ok(resultado);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] VerReservasDisponibles: {ex.Message}");
+                return StatusCode(500, "Error interno en VerReservasDisponibles.");
+            }
         }
+
+
 
 
         [HttpDelete("{reservaId}/salir")]
@@ -612,5 +633,19 @@ namespace FutbolYa.WebAPI.Controllers
         }
 
 
+        [HttpPut("pagar/{id}")]
+        public async Task<IActionResult> SimularPago(int id, [FromQuery] string tipoPago, [FromQuery] string metodo)
+        {
+            var reserva = await _context.Reservas.FindAsync(id);
+            if (reserva == null) return NotFound();
+
+            reserva.EstadoPago = tipoPago;
+            reserva.MetodoPago = metodo;
+            reserva.FechaPago = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { mensaje = $"Reserva actualizada como {tipoPago} con {metodo}" });
+        }
     }
 }
