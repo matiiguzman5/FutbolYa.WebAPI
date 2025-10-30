@@ -68,7 +68,7 @@ namespace FutbolYa.WebAPI.Controllers
             if (!string.IsNullOrWhiteSpace(body?.Nombre)) u.Nombre = body.Nombre;
             if (!string.IsNullOrWhiteSpace(body?.Telefono)) u.Telefono = body.Telefono;
             if (!string.IsNullOrWhiteSpace(body?.Rol)) u.Rol = body.Rol;
-            if (!string.IsNullOrWhiteSpace(body?.Contraseña)) u.Contraseña = body.Contraseña;
+            if (!string.IsNullOrWhiteSpace(body?.Contrasena)) u.Contrasena = body.Contrasena;
             if (!string.IsNullOrWhiteSpace(body?.Ubicacion)) u.Ubicacion = body.Ubicacion;
 
             await _context.SaveChangesAsync();
@@ -158,7 +158,7 @@ namespace FutbolYa.WebAPI.Controllers
             {
                 Nombre = dto.Nombre,
                 Correo = dto.Correo,
-                Contraseña = dto.Contraseña,
+                Contrasena = dto.Contrasena,
                 Rol = dto.Rol ?? "jugador"
             };
 
@@ -220,8 +220,8 @@ namespace FutbolYa.WebAPI.Controllers
             if (!string.IsNullOrWhiteSpace(dto.Posicion))
                 usuario.Posicion = dto.Posicion;
 
-            if (!string.IsNullOrWhiteSpace(dto.Contraseña))
-                usuario.Contraseña = dto.Contraseña;
+            if (!string.IsNullOrWhiteSpace(dto.Contrasena))
+                usuario.Contrasena = dto.Contrasena;
 
             await _context.SaveChangesAsync();
 
@@ -266,3 +266,4 @@ namespace FutbolYa.WebAPI.Controllers
     }
 
 }
+

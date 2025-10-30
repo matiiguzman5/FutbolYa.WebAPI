@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace FutbolYa.WebAPI.Models
 {
@@ -7,7 +8,10 @@ namespace FutbolYa.WebAPI.Models
         public int Id { get; set; }
         public string Nombre { get; set; }
         public string Correo { get; set; }
-        public string Contraseña { get; set; }
+
+        [Column("Contrase\u00F1a")]
+        public string Contrasena { get; set; }
+
         public string Rol { get; set; } = "usuario";
         public string? Telefono { get; set; }
         public string? Posicion { get; set; }
@@ -17,6 +21,5 @@ namespace FutbolYa.WebAPI.Models
         [JsonIgnore]
         public ICollection<Partido> Partidos { get; set; } = new List<Partido>();
         public ICollection<Cancha> Canchas { get; set; } = new List<Cancha>();
-
     }
 }
