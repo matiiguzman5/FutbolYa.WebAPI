@@ -681,6 +681,18 @@ namespace FutbolYa.WebAPI.Controllers
                     : new string(body.NumeroTarjeta.Where(char.IsDigit).ToArray());
 
                 var tokenNormalizado = body.Token?.Trim();
+                var logEstado = body.EstadoPago ?? estadoPago;
+                var logMetodo = body.MetodoPago ?? metodoPago;
+                var logUltimos4 = string.Empty;
+                if (!string.IsNullOrEmpty(numeroSanitizado))
+                {
+                    var startIndex = numeroSanitizado.Length >= 4 ? numeroSanitizado.Length - 4 : 0;
+                    logUltimos4 = numeroSanitizado.Substring(startIndex);
+                }
+
+                // TODO: Quitar log temporal de confirmacion de pago.
+                Console.WriteLine($"[PAGO] ConfirmarPago body -> Reserva {reserva.Id} | Estado: {logEstado ?? "(sin dato)"} | Metodo: {logMetodo ?? "(sin dato)"} | Token presente: {!string.IsNullOrWhiteSpace(tokenNormalizado)} | Digitos: {numeroSanitizado.Length} | Ultimos4: {logUltimos4}");
+
                 var requierePersistencia = !string.IsNullOrWhiteSpace(numeroSanitizado)
                     || !string.IsNullOrWhiteSpace(tokenNormalizado)
                     || !string.IsNullOrWhiteSpace(body.CodigoSeguridad);
@@ -731,4 +743,3 @@ namespace FutbolYa.WebAPI.Controllers
         }
     }
 }
-
