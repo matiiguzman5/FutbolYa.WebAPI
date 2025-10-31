@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
 namespace FutbolYa.WebAPI.Models
@@ -16,6 +16,7 @@ namespace FutbolYa.WebAPI.Models
         public DbSet<Reserva> Reservas { get; set; }
         public DbSet<ReservaUsuario> ReservaUsuarios { get; set; }
         public DbSet<PartidoUsuario> PartidoUsuarios { get; set; }
+        public DbSet<DatosTarjeta> DatosTarjetas { get; set; }
 
 
 
@@ -82,6 +83,13 @@ namespace FutbolYa.WebAPI.Models
                 .HasForeignKey(ru => ru.UsuarioId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            modelBuilder.Entity<DatosTarjeta>()
+                .HasOne(dt => dt.Reserva)
+                .WithMany(r => r.DatosTarjetas)
+                .HasForeignKey(dt => dt.ReservaId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+
             modelBuilder.Entity<PartidoUsuario>()
                 .ToTable("PartidoUsuario"); 
 
@@ -103,3 +111,4 @@ namespace FutbolYa.WebAPI.Models
         }
     }
 }
+

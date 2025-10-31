@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using FutbolYa.WebAPI.Helpers;
 using System.Globalization;
+using System.Linq;
 using FutbolYa.WebAPI.DTOs;
 
 
@@ -634,18 +635,100 @@ namespace FutbolYa.WebAPI.Controllers
 
 
         [HttpPut("pagar/{id}")]
-        public async Task<IActionResult> SimularPago(int id, [FromQuery] string tipoPago, [FromQuery] string metodo)
+        public async Task<IActionResult> ConfirmarPago(int id, [FromBody] ConfirmarPagoDTO? body = null)
         {
             var reserva = await _context.Reservas.FindAsync(id);
             if (reserva == null) return NotFound();
 
-            reserva.EstadoPago = tipoPago;
-            reserva.MetodoPago = metodo;
-            reserva.FechaPago = DateTime.Now;
+            string? estadoPago = body?.EstadoPago;
+            if (string.IsNullOrWhiteSpace(estadoPago))
+            {
+                var estadoQuery = Request?.Query["tipoPago"].ToString();
+                if (!string.IsNullOrWhiteSpace(estadoQuery))
+                {
+                    estadoPago = estadoQuery;
+                }
+            }
+
+            string? metodoPago = body?.MetodoPago;
+            if (string.IsNullOrWhiteSpace(metodoPago))
+            {
+                var metodoQuery = Request?.Query["metodo"].ToString();
+                if (!string.IsNullOrWhiteSpace(metodoQuery))
+                {
+                    metodoPago = metodoQuery;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(estadoPago) || string.IsNullOrWhiteSpace(metodoPago))
+            {
+                return BadRequest("Debe indicar el estado y el metodo de pago.");
+            }
+
+            reserva.EstadoPago = estadoPago;
+            reserva.MetodoPago = metodoPago;
+            reserva.FechaPago = body?.FechaPago ?? DateTime.Now;
+
+            if (body?.SedeConfirmoTransferencia.HasValue == true)
+            {
+                reserva.SedeConfirmoTransferencia = body.SedeConfirmoTransferencia.Value;
+            }
+
+            if (body != null)
+            {
+                var numeroSanitizado = string.IsNullOrWhiteSpace(body.NumeroTarjeta)
+                    ? string.Empty
+                    : new string(body.NumeroTarjeta.Where(char.IsDigit).ToArray());
+
+                var tokenNormalizado = body.Token?.Trim();
+                var requierePersistencia = !string.IsNullOrWhiteSpace(numeroSanitizado)
+                    || !string.IsNullOrWhiteSpace(tokenNormalizado)
+                    || !string.IsNullOrWhiteSpace(body.CodigoSeguridad);
+
+                if (requierePersistencia)
+                {
+                    var hashToken = HashingHelper.ComputeSha256(tokenNormalizado ?? string.Empty);
+                    var hashNumero = HashingHelper.ComputeSha256(numeroSanitizado);
+
+                    var existeRegistro = await _context.DatosTarjetas
+                        .AnyAsync(dt => dt.ReservaId == reserva.Id && dt.HashToken == hashToken && dt.HashNumero == hashNumero);
+
+                    if (!existeRegistro)
+                    {
+                        string? ultimos4 = null;
+                        if (!string.IsNullOrEmpty(numeroSanitizado))
+                        {
+                            ultimos4 = numeroSanitizado.Length >= 4
+                                ? numeroSanitizado.Substring(numeroSanitizado.Length - 4)
+                                : numeroSanitizado;
+                        }
+
+                        var registro = new DatosTarjeta
+                        {
+                            ReservaId = reserva.Id,
+                            HashToken = hashToken,
+                            HashNumero = hashNumero,
+                            Ultimos4 = ultimos4,
+                            HashCvv = string.IsNullOrWhiteSpace(body.CodigoSeguridad)
+                                ? null
+                                : HashingHelper.ComputeSha256(body.CodigoSeguridad.Trim()),
+                            NombreTitular = string.IsNullOrWhiteSpace(body.NombreTitular)
+                                ? null
+                                : body.NombreTitular.Trim(),
+                            FechaExpiracion = string.IsNullOrWhiteSpace(body.FechaExpiracion)
+                                ? null
+                                : body.FechaExpiracion.Trim(),
+                        };
+
+                        _context.DatosTarjetas.Add(registro);
+                    }
+                }
+            }
 
             await _context.SaveChangesAsync();
 
-            return Ok(new { mensaje = $"Reserva actualizada como {tipoPago} con {metodo}" });
+            return Ok(new { mensaje = $"Reserva actualizada como {estadoPago} con {metodoPago}" });
         }
     }
 }
+

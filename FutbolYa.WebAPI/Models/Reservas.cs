@@ -30,6 +30,9 @@ namespace FutbolYa.WebAPI.Models
 
         public ICollection<ReservaUsuario> Jugadores { get; set; } = new List<ReservaUsuario>();
 
+        [JsonIgnore]
+        public ICollection<DatosTarjeta> DatosTarjetas { get; set; } = new List<DatosTarjeta>();
+
         public string? ClienteEmail { get; set; }
         public bool EsFrecuente { get; set; }
         public DateTime? FechaPago { get; set; }
@@ -41,3 +44,4 @@ namespace FutbolYa.WebAPI.Models
         public Usuario UsuarioEstablecimiento { get; set; }
     }
 }
+
