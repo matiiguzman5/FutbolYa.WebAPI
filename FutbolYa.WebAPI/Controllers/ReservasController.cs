@@ -528,6 +528,7 @@ namespace FutbolYa.WebAPI.Controllers
 
                 var reservas = await _context.Reservas
                     .Include(r => r.Cancha)
+                    .Include(r => r.UsuarioEstablecimiento) // ✅ para traer la foto
                     .Include(r => r.Jugadores)
                     .Where(r => r.FechaHora > ahora)
                     .ToListAsync();
@@ -566,7 +567,8 @@ namespace FutbolYa.WebAPI.Controllers
                             EspaciosDisponibles = capacidad - jugadores,
                             Observaciones = r.Observaciones,
                             EstadoPago = r.EstadoPago,
-                            YaEstoyUnido = yaEstoyUnido
+                            YaEstoyUnido = yaEstoyUnido,
+                            FotoEstablecimiento = r.UsuarioEstablecimiento?.FotoPerfil // ✅ nueva línea
                         };
                     })
                     .Where(r => r.Anotados < r.Capacidad || r.YaEstoyUnido);
@@ -579,6 +581,7 @@ namespace FutbolYa.WebAPI.Controllers
                 return StatusCode(500, "Error interno en VerReservasDisponibles.");
             }
         }
+
 
 
 
