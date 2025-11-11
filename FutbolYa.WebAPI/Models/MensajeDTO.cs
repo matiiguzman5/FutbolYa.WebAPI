@@ -2,7 +2,7 @@
 {
     public class MensajeDTO
     {
-        public int PartidoId { get; set; }
+        public int ReservaId { get; set; }
        
         public string Contenido { get; set; }
     }

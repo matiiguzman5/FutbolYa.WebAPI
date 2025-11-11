@@ -5,7 +5,7 @@ namespace FutbolYa.WebAPI.Models
     public class Mensaje
     {
         public int Id { get; set; }
-        public int PartidoId { get; set; }
+        public int ReservaId { get; set; }
         [JsonIgnore]
         public Partido Partido { get; set; }
         public int UsuarioId { get; set; }

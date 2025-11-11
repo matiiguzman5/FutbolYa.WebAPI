@@ -23,15 +23,15 @@ namespace FutbolYa.WebAPI.Controllers
         {
             var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
-            var partidoExiste = await _context.Partidos.AnyAsync(p => p.Id == dto.PartidoId);
+            var reservaExiste = await _context.Reservas.AnyAsync(r => r.Id == dto.ReservaId);
             var usuarioExiste = await _context.Usuarios.AnyAsync(u => u.Id == int.Parse(userId));
 
-            if (!partidoExiste || !usuarioExiste)
-                return BadRequest("Partido o usuario inválido.");
+            if (!reservaExiste || !usuarioExiste)
+                return BadRequest("Reserva o usuario inválido.");
 
             var mensaje = new Mensaje
             {
-                PartidoId = dto.PartidoId,
+                ReservaId = dto.ReservaId,
                 UsuarioId = int.Parse(userId),
                 Contenido = dto.Contenido,
                 Fecha = DateTime.Now
@@ -40,15 +40,20 @@ namespace FutbolYa.WebAPI.Controllers
             _context.Mensajes.Add(mensaje);
             await _context.SaveChangesAsync();
 
-            return Ok("Mensaje enviado.");
+            // devolvemos el mensaje con usuario incluido
+            var mensajeConUsuario = await _context.Mensajes
+                .Include(m => m.Usuario)
+                .FirstOrDefaultAsync(m => m.Id == mensaje.Id);
+
+            return Ok(mensajeConUsuario);
         }
 
-        // GET: api/mensajes/partido/1
-        [HttpGet("partido/{partidoId}")]
-        public async Task<IActionResult> ObtenerMensajes(int partidoId)
+        // GET: api/mensajes/reserva/5
+        [HttpGet("reserva/{reservaId}")]
+        public async Task<IActionResult> ObtenerMensajes(int reservaId)
         {
             var mensajes = await _context.Mensajes
-                .Where(m => m.PartidoId == partidoId)
+                .Where(m => m.ReservaId == reservaId)
                 .Include(m => m.Usuario)
                 .OrderBy(m => m.Fecha)
                 .ToListAsync();

@@ -13,6 +13,7 @@ namespace FutbolYa.WebAPI.Helpers
             {
                 new Claim(ClaimTypes.NameIdentifier, userId),
                 new Claim(ClaimTypes.Role, rol)
+
             };
 
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
