@@ -40,6 +40,7 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(c =>
@@ -99,7 +100,7 @@ app.UseCors("AllowReactApp");
 
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.MapHub<FutbolYa.WebAPI.Controllers.ChatHub>("/hubs/chat");
 app.MapControllers();
 
 app.Run();

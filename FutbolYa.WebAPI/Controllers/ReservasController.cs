@@ -397,6 +397,28 @@ namespace FutbolYa.WebAPI.Controllers
                 return StatusCode(500, "Error interno en VerAgenda.");
             }
         }
+        [Authorize]
+        [HttpGet("{id}/esta-inscripto")]
+        public async Task<IActionResult> EstaInscripto(int id)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+                return Unauthorized("Token inválido");
+
+            var reserva = await _context.Reservas
+                .Include(r => r.Jugadores)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
+            if (reserva == null)
+                return NotFound("Reserva no encontrada.");
+
+            // 👇 Como Jugadores es una colección de ReservaUsuario, usamos UsuarioId
+            bool estaInscripto = reserva.Jugadores.Any(j => j.UsuarioId == userId);
+
+            return Ok(estaInscripto);
+        }
+
+
 
 
 
