@@ -49,18 +49,6 @@ namespace FutbolYa.WebAPI.Controllers
             );
             if (conflicto) return BadRequest("Ya hay una reserva en ese horario");
 
-            if (userRol == "jugador")
-            {
-                var yaTieneReservaEseDia = await _context.Reservas
-                    .AnyAsync(r =>
-                        r.ClienteEmail == usuario.Correo &&
-                        r.FechaHora.Date == dto.FechaHora.Date
-                    );
-
-                if (yaTieneReservaEseDia)
-                    return BadRequest("Ya tenés una reserva ese día.");
-            }
-
             var reserva = new Reserva
             {
                 CanchaId = dto.CanchaId,
@@ -164,17 +152,6 @@ namespace FutbolYa.WebAPI.Controllers
             );
             if (conflicto)
                 return BadRequest("Ya hay una reserva en ese horario");
-
-            // (Opcional) Regla: un jugador no puede tener dos reservas el mismo día
-            if (userRol == "jugador")
-            {
-                var yaTieneReservaEseDia = await _context.Reservas.AnyAsync(r =>
-                    r.ClienteEmail == usuario.Correo &&
-                    r.FechaHora.Date == dto.FechaHora.Date
-                );
-                if (yaTieneReservaEseDia)
-                    return BadRequest("Ya tenés una reserva ese día.");
-            }
 
             var reserva = new Reserva
             {
@@ -486,10 +463,11 @@ namespace FutbolYa.WebAPI.Controllers
 
         // GET: api/reservas/5/jugadores
         [HttpGet("{id}/jugadores")]
-        [Authorize(Roles = "establecimiento")]
+        [Authorize] // cualquier usuario logueado
         public async Task<IActionResult> VerJugadores(int id)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
+            var rol = User.FindFirst(ClaimTypes.Role)?.Value;
 
             var reserva = await _context.Reservas
                 .Include(r => r.Cancha)
@@ -500,12 +478,19 @@ namespace FutbolYa.WebAPI.Controllers
             if (reserva == null)
                 return NotFound("Reserva no encontrada");
 
+            // ¿Quién puede ver?
+            bool esAdmin = rol == "administrador";
+            bool esEstablecimientoDeLaReserva = rol == "establecimiento" && reserva.UsuarioEstablecimientoId == userId;
+            bool esJugadorDeLaReserva = reserva.Jugadores.Any(j => j.UsuarioId == userId);
+
+            if (!esAdmin && !esEstablecimientoDeLaReserva && !esJugadorDeLaReserva)
+                return Forbid("No tenés permiso para ver los jugadores de esta reserva.");
+
             var creador = await _context.Usuarios
                 .FirstOrDefaultAsync(u => u.Correo == reserva.ClienteEmail);
 
             var jugadores = reserva.Jugadores.Select(j => j.Usuario).ToList();
 
-            
             if (creador != null && !jugadores.Any(j => j.Id == creador.Id))
                 jugadores.Insert(0, creador);
 
@@ -518,7 +503,6 @@ namespace FutbolYa.WebAPI.Controllers
                 "F11" or "FUTBOL-11" => 22,
                 _ => 10
             };
-
 
             var resultado = jugadores.Select(j => new
             {
@@ -538,6 +522,7 @@ namespace FutbolYa.WebAPI.Controllers
                 Jugadores = resultado
             });
         }
+
 
 
         [HttpGet("disponibles")]

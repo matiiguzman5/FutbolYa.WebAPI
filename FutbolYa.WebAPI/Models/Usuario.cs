@@ -18,6 +18,12 @@ namespace FutbolYa.WebAPI.Models
         public string? FotoPerfil { get; set; }
         public string? Ubicacion { get; set; }
 
+        public string? ResetPasswordToken { get; set; }
+        public DateTime? ResetPasswordTokenExpira { get; set; }
+        public bool EmailConfirmado { get; set; } = false;
+        public string? EmailConfirmToken { get; set; }
+        public DateTime? EmailConfirmTokenExpira { get; set; }
+
         [JsonIgnore]
         public ICollection<Partido> Partidos { get; set; } = new List<Partido>();
         public ICollection<Cancha> Canchas { get; set; } = new List<Cancha>();
