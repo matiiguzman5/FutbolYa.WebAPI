@@ -1,7 +1,8 @@
-﻿using FutbolYa.WebAPI.Helpers;
+using FutbolYa.WebAPI.Helpers;
 using FutbolYa.WebAPI.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -43,7 +44,7 @@ builder.Services.AddAuthentication(options =>
     {
         OnMessageReceived = context =>
         {
-            // el token viene en la query string cuando la conexión es WebSocket
+            // el token viene en la query string cuando la conexi�n es WebSocket
             var accessToken = context.Request.Query["access_token"];
             var path = context.HttpContext.Request.Path;
 
@@ -73,7 +74,7 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "Colocá tu token con el prefijo 'Bearer '"
+        Description = "Coloc� tu token con el prefijo 'Bearer '"
     });
 
     c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
@@ -94,6 +95,20 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    try
+    {
+        dbContext.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Error aplicando migraciones: " + ex.Message);
+        throw;
+    }
+}
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -101,7 +116,7 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    // Solo en producción: servir el frontend estático
+    // Solo en producción: servir el frontend est�tico
     app.UseDefaultFiles();
     app.UseStaticFiles(new StaticFileOptions
     {
@@ -125,3 +140,4 @@ app.MapControllers();
 app.Run();
 
 //puto el q lee
+

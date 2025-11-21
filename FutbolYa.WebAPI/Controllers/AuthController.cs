@@ -3,6 +3,7 @@ using FutbolYa.WebAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using System.Text.Json.Serialization;
 
 namespace FutbolYa.WebAPI.Controllers
@@ -55,8 +56,9 @@ namespace FutbolYa.WebAPI.Controllers
                 return BadRequest("Ya existe un usuario con ese correo.");
             }
 
-            // Token de confirmación
-            var token = Guid.NewGuid().ToString();
+            var requiereConfirmacion = _configuration.GetValue<bool>("Auth:RequireEmailConfirmation", true);
+            var smtpEnabled = _configuration.GetValue<bool>("Smtp:Enabled", true);
+            var enviarMailConfirmacion = requiereConfirmacion && smtpEnabled;
 
             var usuario = new Usuario
             {
@@ -64,48 +66,59 @@ namespace FutbolYa.WebAPI.Controllers
                 Correo = dto.Correo,
                 Contrasena = dto.Contrasena,
                 Rol = "jugador",
-                EmailConfirmado = false,
-                EmailConfirmToken = token,
-                EmailConfirmTokenExpira = DateTime.UtcNow.AddHours(24)
+                EmailConfirmado = !enviarMailConfirmacion
             };
+
+            if (enviarMailConfirmacion)
+            {
+                usuario.EmailConfirmToken = Guid.NewGuid().ToString();
+                usuario.EmailConfirmTokenExpira = DateTime.UtcNow.AddHours(24);
+            }
 
             _context.Usuarios.Add(usuario);
             await _context.SaveChangesAsync();
 
-            // URL base de la API o front (configurable en appsettings: "AppUrl")
-            var appUrl = _configuration["AppUrl"] ?? "https://futbolya.com";
-            var urlConfirmacion = $"{appUrl.TrimEnd('/')}/api/auth/confirmar-email?token={token}";
+            if (enviarMailConfirmacion && usuario.EmailConfirmToken != null)
+            {
+                var appUrl = _configuration["AppUrl"] ?? "https://futbolya.com";
+                var urlConfirmacion = $"{appUrl.TrimEnd('/')}/api/auth/confirmar-email?token={usuario.EmailConfirmToken}";
 
-            var cuerpoHtml = $@"
+                var cuerpoHtml = $@"
                 <p>Hola {usuario.Nombre},</p>
                 <p>Gracias por registrarte en <b>FutbolYa</b>.</p>
-                <p>Para activar tu cuenta, hacé clic en el siguiente enlace:</p>
+                <p>Para activar tu cuenta, hace click en el siguiente enlace:</p>
                 <p><a href=""{urlConfirmacion}"">Confirmar cuenta</a></p>
-                <p>Si no fuiste vos, ignorá este correo.</p>
+                <p>Si no fuiste vos, ignora este correo.</p>
             ";
 
-            try
-            {
-                await _emailService.EnviarAsync(
-                    usuario.Correo,
-                    "Confirmá tu cuenta en FutbolYa",
-                    cuerpoHtml
-                );
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("ERROR SMTP: " + ex.Message);
-                return StatusCode(500, "Error enviando mail: " + ex.Message);
+                try
+                {
+                    await _emailService.EnviarAsync(
+                        usuario.Correo,
+                        "Confirma tu cuenta en FutbolYa",
+                        cuerpoHtml
+                    );
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("ERROR SMTP: " + ex.Message);
+                    _context.Usuarios.Remove(usuario);
+                    await _context.SaveChangesAsync();
+                    return StatusCode(500, "Error enviando mail: " + ex.Message);
+                }
             }
 
+            var mensaje = enviarMailConfirmacion
+                ? "Usuario registrado correctamente. Revisa tu correo para confirmar la cuenta."
+                : "Usuario registrado correctamente. Tu cuenta ya esta activa.";
 
             return Ok(new
             {
-                mensaje = "Usuario registrado correctamente. Revisá tu correo para confirmar la cuenta.",
-                usuario.Id
+                mensaje,
+                usuario.Id,
+                requiereConfirmacionEmail = enviarMailConfirmacion
             });
         }
-
         // ===============================
         //  CONFIRMAR EMAIL
         // ===============================
