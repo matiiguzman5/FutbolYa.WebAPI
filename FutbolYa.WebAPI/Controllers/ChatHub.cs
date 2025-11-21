@@ -17,12 +17,12 @@ namespace FutbolYa.WebAPI.Controllers
             _context = context;
         }
 
-        // 🔹 Enviar mensaje (con validación de inscripción)
+        //Enviar mensaje (con validación de inscripción)
         public async Task EnviarMensaje(string reservaId, string usuarioNombre, string contenido)
         {
             try
             {
-                // ✅ 1. Validar token y usuario logueado
+                // Validar token y usuario logueado
                 var userIdClaim = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
                 {
@@ -30,7 +30,7 @@ namespace FutbolYa.WebAPI.Controllers
                     return;
                 }
 
-                // ✅ 2. Verificar si el usuario está inscripto en la reserva
+                //Verificar si el usuario está inscripto en la reserva
                 int idReserva = int.Parse(reservaId);
 
                 bool estaInscripto = await _context.Reservas
@@ -40,10 +40,10 @@ namespace FutbolYa.WebAPI.Controllers
                 if (!estaInscripto)
                 {
                     Console.WriteLine($"🚫 Usuario {userId} intentó enviar mensaje sin estar inscripto.");
-                    return; // no guarda ni envía
+                    return;
                 }
 
-                // ✅ 3. Obtener usuario (por nombre o ID)
+                //Obtener usuario (por nombre o ID)
                 var usuario = await _context.Usuarios.FindAsync(userId);
                 if (usuario == null)
                 {
@@ -51,7 +51,7 @@ namespace FutbolYa.WebAPI.Controllers
                     return;
                 }
 
-                // ✅ 4. Crear y guardar el mensaje en la base de datos
+                //Crear y guardar el mensaje en la base de datos
                 var mensaje = new Mensaje
                 {
                     ReservaId = idReserva,
@@ -63,7 +63,7 @@ namespace FutbolYa.WebAPI.Controllers
                 _context.Mensajes.Add(mensaje);
                 await _context.SaveChangesAsync();
 
-                // ✅ 5. Emitir mensaje a todos los usuarios del grupo (SignalR)
+                //Emitir mensaje a todos los usuarios del grupo (SignalR)
                 await Clients.Group(reservaId)
                     .SendAsync("RecibirMensaje", usuario.Nombre, contenido, mensaje.Fecha);
 
@@ -75,14 +75,14 @@ namespace FutbolYa.WebAPI.Controllers
             }
         }
 
-        // 🔹 Cuando alguien entra al chat
+        //Cuando alguien entra al chat
         public async Task UnirseAReserva(string reservaId)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, reservaId);
             Console.WriteLine($"✅ Usuario {Context.ConnectionId} se unió al grupo {reservaId}");
         }
 
-        // 🔹 Cuando alguien sale del chat
+        //Cuando alguien sale del chat
         public async Task SalirDeReserva(string reservaId)
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, reservaId);

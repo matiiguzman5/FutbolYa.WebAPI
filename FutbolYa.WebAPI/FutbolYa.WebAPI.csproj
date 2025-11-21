@@ -8,16 +8,17 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.29" />
-		<PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.0" />
+
+		<!-- EF Core -->
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.29">
 			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.29" />
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.5">
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.29">
 			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
+
+		<!-- Swagger -->
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
 	</ItemGroup>
 
@@ -25,5 +26,5 @@
 		<Folder Include="Migrations\" />
 		<Folder Include="wwwroot\perfiles\" />
 	</ItemGroup>
-	
+
 </Project>

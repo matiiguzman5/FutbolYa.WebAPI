@@ -1,4 +1,5 @@
-﻿using FutbolYa.WebAPI.Models;
+﻿using FutbolYa.WebAPI.Helpers;
+using FutbolYa.WebAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,12 +14,17 @@ namespace FutbolYa.WebAPI.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
+        private readonly EmailService _emailService;
+        private readonly IConfiguration _configuration;
 
-        public UsuariosController(AppDbContext context, IWebHostEnvironment env)
+        public UsuariosController(AppDbContext context, IWebHostEnvironment env, EmailService emailService, IConfiguration configuration)
         {
             _context = context;
             _env = env;
+            _emailService = emailService;
+            _configuration = configuration;
         }
+
 
         // GET: api/Usuarios/yo
         [HttpGet("yo")]
@@ -47,7 +53,6 @@ namespace FutbolYa.WebAPI.Controllers
             return Ok(usuario);
         }
 
-
         // PUT: api/Usuarios/{id}  (ADMIN)
         [HttpPut("{id}")]
         [Authorize(Roles = "administrador")]
@@ -56,7 +61,6 @@ namespace FutbolYa.WebAPI.Controllers
             var u = await _context.Usuarios.FindAsync(id);
             if (u == null) return NotFound("Usuario no encontrado.");
 
-            // Validar correo duplicado si viene uno nuevo
             if (!string.IsNullOrWhiteSpace(body?.Correo))
             {
                 var existe = await _context.Usuarios.AnyAsync(x => x.Correo == body.Correo && x.Id != id);
@@ -81,11 +85,9 @@ namespace FutbolYa.WebAPI.Controllers
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-            // Total de partidos jugados
             var partidosJugados = await _context.PartidoUsuarios
                 .CountAsync(pu => pu.JugadoresId == userId);
 
-            // Promedio de valoraciones
             var valoraciones = await _context.Calificaciones
                 .Where(c => c.EvaluadoId == userId)
                 .Select(c => c.Puntaje)
@@ -159,13 +161,44 @@ namespace FutbolYa.WebAPI.Controllers
                 Nombre = dto.Nombre,
                 Correo = dto.Correo,
                 Contrasena = dto.Contrasena,
-                Rol = dto.Rol ?? "jugador"
+                Rol = dto.Rol ?? "jugador",
+                EmailConfirmado = false
             };
+
+            nuevo.EmailConfirmToken = Guid.NewGuid().ToString("N");
+            nuevo.EmailConfirmTokenExpira = DateTime.UtcNow.AddHours(24);
 
             _context.Usuarios.Add(nuevo);
             await _context.SaveChangesAsync();
 
-            return Ok(new { mensaje = "Usuario creado", nuevo.Id });
+            var backendBase = _configuration["BackendUrl"];
+            if (string.IsNullOrEmpty(backendBase))
+                return StatusCode(500, "BackendUrl no configurado en el servidor.");
+            var urlConfirmacion = $"{backendBase}/api/auth/confirmar-email?token={nuevo.EmailConfirmToken}";
+
+            var html = $@"
+                            <h2>Bienvenido a FutbolYa</h2>
+                            <p>Hola <strong>{nuevo.Nombre}</strong>, tu cuenta fue creada correctamente.</p>
+                            <p>Para activarla hacé clic en el siguiente botón:</p>
+                            <p><a href='{urlConfirmacion}' 
+                                  style='display:inline-block;padding:10px 20px;background:#28a745;color:#fff;border-radius:5px;text-decoration:none;'>
+                                  Confirmar mi cuenta
+                               </a>
+                            </p>
+                            <p>O copiá y pegá este enlace:</p>
+                            <p>{urlConfirmacion}</p>
+                            <br/>
+                            <small>Este enlace expira en 24 horas.</small>
+                        ";
+            Console.WriteLine(">>> INTENTANDO ENVIAR EMAIL A: " + nuevo.Correo);
+
+            await _emailService.EnviarAsync(
+                nuevo.Correo,
+                "Confirma tu cuenta en FutbolYa",
+                html
+            );
+
+            return Ok(new { mensaje = "Usuario creado. Confirmación enviada.", nuevo.Id });
         }
 
         [HttpDelete("{id}")]

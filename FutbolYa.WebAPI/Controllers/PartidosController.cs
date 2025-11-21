@@ -48,12 +48,8 @@ namespace FutbolYa.WebAPI.Controllers
             return Ok(resultado);
         }
 
-
-        [Authorize(Roles = "establecimiento")]
-        [Authorize(Roles = "administrador")]
-        [Authorize]
         [HttpPost]
-        [HttpPost]
+        [Authorize(Roles = "establecimiento,administrador")]
         public async Task<IActionResult> CrearPartido([FromBody] PartidoDTO dto)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);

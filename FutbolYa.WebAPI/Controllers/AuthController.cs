@@ -83,7 +83,7 @@ namespace FutbolYa.WebAPI.Controllers
                 var appUrl = _configuration["AppUrl"] ?? "https://futbolya.com";
                 var urlConfirmacion = $"{appUrl.TrimEnd('/')}/api/auth/confirmar-email?token={usuario.EmailConfirmToken}";
 
-                var cuerpoHtml = $@"
+            var cuerpoHtml = $@"
                 <p>Hola {usuario.Nombre},</p>
                 <p>Gracias por registrarte en <b>FutbolYa</b>.</p>
                 <p>Para activar tu cuenta, hace click en el siguiente enlace:</p>

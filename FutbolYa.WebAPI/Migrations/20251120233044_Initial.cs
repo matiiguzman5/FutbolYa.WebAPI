@@ -22,7 +22,12 @@ namespace FutbolYa.WebAPI.Migrations
                     Telefono = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Posicion = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     FotoPerfil = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Ubicacion = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    Ubicacion = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ResetPasswordToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ResetPasswordTokenExpira = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    EmailConfirmado = table.Column<bool>(type: "bit", nullable: false),
+                    EmailConfirmToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    EmailConfirmTokenExpira = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -91,9 +96,12 @@ namespace FutbolYa.WebAPI.Migrations
                     DuracionMinutos = table.Column<int>(type: "int", nullable: false),
                     ClienteNombre = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ClienteTelefono = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    EstadoPago = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    MetodoPago = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SedeConfirmoTransferencia = table.Column<bool>(type: "bit", nullable: false),
                     ClienteEmail = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     EsFrecuente = table.Column<bool>(type: "bit", nullable: false),
-                    EstadoPago = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FechaPago = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Observaciones = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     UsuarioEstablecimientoId = table.Column<int>(type: "int", nullable: false)
                 },
@@ -156,6 +164,7 @@ namespace FutbolYa.WebAPI.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
+                    ReservaId = table.Column<int>(type: "int", nullable: false),
                     PartidoId = table.Column<int>(type: "int", nullable: false),
                     UsuarioId = table.Column<int>(type: "int", nullable: false),
                     Contenido = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -242,6 +251,32 @@ namespace FutbolYa.WebAPI.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "DatosTarjetas",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ReservaId = table.Column<int>(type: "int", nullable: false),
+                    HashToken = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    HashNumero = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
+                    Ultimos4 = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
+                    HashCvv = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: true),
+                    NombreTitular = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    FechaExpiracion = table.Column<string>(type: "nvarchar(7)", maxLength: 7, nullable: true),
+                    FechaRegistroUtc = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DatosTarjetas", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DatosTarjetas_Reservas_ReservaId",
+                        column: x => x.ReservaId,
+                        principalTable: "Reservas",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ReservaUsuarios",
                 columns: table => new
                 {
@@ -284,6 +319,11 @@ namespace FutbolYa.WebAPI.Migrations
                 name: "IX_Canchas_UsuarioEstablecimientoId",
                 table: "Canchas",
                 column: "UsuarioEstablecimientoId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DatosTarjetas_ReservaId",
+                table: "DatosTarjetas",
+                column: "ReservaId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Mensajes_PartidoId",
@@ -345,6 +385,9 @@ namespace FutbolYa.WebAPI.Migrations
         {
             migrationBuilder.DropTable(
                 name: "Calificaciones");
+
+            migrationBuilder.DropTable(
+                name: "DatosTarjetas");
 
             migrationBuilder.DropTable(
                 name: "Mensajes");

@@ -116,8 +116,6 @@ namespace FutbolYa.WebAPI.Controllers
             return Ok(libres);
         }
 
-
-
         // GET: api/canchas/disponibles  (listado simple para la app)
         [AllowAnonymous]
         [HttpGet("disponibles")]

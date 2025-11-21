@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FutbolYa.WebAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251110230954_MensajesPorReserva")]
-    partial class MensajesPorReserva
+    [Migration("20251120233044_Initial")]
+    partial class Initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -286,6 +286,15 @@ namespace FutbolYa.WebAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("EmailConfirmToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("EmailConfirmTokenExpira")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("EmailConfirmado")
+                        .HasColumnType("bit");
+
                     b.Property<string>("FotoPerfil")
                         .HasColumnType("nvarchar(max)");
 
@@ -295,6 +304,12 @@ namespace FutbolYa.WebAPI.Migrations
 
                     b.Property<string>("Posicion")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ResetPasswordToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ResetPasswordTokenExpira")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Rol")
                         .IsRequired()
