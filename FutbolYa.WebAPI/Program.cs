@@ -1,25 +1,29 @@
-using FutbolYa.WebAPI.Helpers;
+﻿using FutbolYa.WebAPI.Helpers;
 using FutbolYa.WebAPI.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// =====================================
+// JWT KEY (VALIDAR QUE EXISTA)
+// =====================================
 var key = builder.Configuration["Jwt:Key"];
+if (string.IsNullOrWhiteSpace(key))
+{
+    throw new Exception("Falta la clave JWT (Jwt:Key). Configúrala en Azure → Configuration.");
+}
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
         policy.WithOrigins(
-            "http://localhost:3000",                  
-            "https://futbolya.com.ar",                
-            "https://futbolya.vercel.app",            
-            "https://futbolya-api.azurewebsites.net"  
+            "http://localhost:3000",
+            "https://futbolya.com.ar",
+            "https://www.futbolya.com.ar"
         )
         .AllowAnyHeader()
         .AllowAnyMethod()
@@ -27,6 +31,10 @@ builder.Services.AddCors(options =>
     });
 });
 
+
+// =====================================
+// DATABASE
+// =====================================
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DefaultConnection"),
@@ -34,8 +42,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     )
 );
 
+// =====================================
+// SERVICES
+// =====================================
 builder.Services.AddScoped<EmailService>();
 
+// =====================================
+// AUTH + JWT
+// =====================================
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -51,6 +65,7 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = false
     };
 
+    // SignalR WebSockets
     options.Events = new JwtBearerEvents
     {
         OnMessageReceived = context =>
@@ -58,8 +73,11 @@ builder.Services.AddAuthentication(options =>
             var accessToken = context.Request.Query["access_token"];
             var path = context.HttpContext.Request.Path;
 
-            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs/chat"))
+            if (!string.IsNullOrEmpty(accessToken) &&
+                path.StartsWithSegments("/hubs/chat"))
+            {
                 context.Token = accessToken;
+            }
 
             return Task.CompletedTask;
         }
@@ -73,26 +91,32 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+// =====================================
+// APPLY MIGRATIONS SAFELY
+// =====================================
 using (var scope = app.Services.CreateScope())
 {
-    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-
     try
     {
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         dbContext.Database.Migrate();
     }
     catch (Exception ex)
     {
         Console.WriteLine("Error aplicando migraciones: " + ex.Message);
-        throw;
+        // NO hacemos throw acá para que Azure no reviente
     }
 }
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
 
+// =====================================
+// SWAGGER EN PROD TAMBIÉN
+// =====================================
+app.UseSwagger();
+app.UseSwaggerUI();
+
+// =====================================
+// PIPELINE
+// =====================================
 app.UseStaticFiles();
 
 app.UseCors("AllowReactApp");
@@ -100,7 +124,10 @@ app.UseCors("AllowReactApp");
 app.UseAuthentication();
 app.UseAuthorization();
 
+// SignalR
 app.MapHub<FutbolYa.WebAPI.Controllers.ChatHub>("/hubs/chat");
+
+// Controllers
 app.MapControllers();
 
 app.Run();
