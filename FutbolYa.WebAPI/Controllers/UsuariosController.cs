@@ -177,20 +177,36 @@ namespace FutbolYa.WebAPI.Controllers
             var urlConfirmacion = $"{backendBase}/api/auth/confirmar-email?token={nuevo.EmailConfirmToken}";
 
             var html = $@"
-                            <h2>Bienvenido a FutbolYa</h2>
-                            <p>Hola <strong>{nuevo.Nombre}</strong>, tu cuenta fue creada correctamente.</p>
-                            <p>Para activarla hacé clic en el siguiente botón:</p>
-                            <p><a href='{urlConfirmacion}' 
-                                  style='display:inline-block;padding:10px 20px;background:#28a745;color:#fff;border-radius:5px;text-decoration:none;'>
-                                  Confirmar mi cuenta
-                               </a>
-                            </p>
-                            <p>O copiá y pegá este enlace:</p>
-                            <p>{urlConfirmacion}</p>
-                            <br/>
-                            <small>Este enlace expira en 24 horas.</small>
-                        ";
+            <div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#333;'>
+                <h2 style='color:#007BFF;'>Bienvenido a FutbolYa</h2>
+
+                <p>Hola <strong>{nuevo.Nombre}</strong>, tu cuenta fue creada correctamente.</p>
+                <p>Ya podés empezar a organizar tus partidos, sumarte a reservas y ¡jugar ya!.</p>
+
+                <p>Para activarla, hacé clic en el siguiente botón:</p>
+
+                <p>
+                    <a href='{urlConfirmacion}'
+                       style='display:inline-block;
+                              padding:10px 20px;
+                              background:#007BFF;
+                              color:#fff;
+                              border-radius:2rem;
+                              text-decoration:none;
+                              font-weight:bold;'>
+                        Confirmar mi cuenta
+                    </a>
+                </p>
+
+                <p>O copiá y pegá este enlace en tu navegador:</p>
+                <p style='word-break:break-all;'>{urlConfirmacion}</p>
+
+                <br/>
+                <small style='color:#777;'>Este enlace expira en 24 horas.</small><br/>
+                <small style='color:#777;'>Si no esperabas este correo, podés ignorarlo.</small>
+            </div>";
             Console.WriteLine(">>> INTENTANDO ENVIAR EMAIL A: " + nuevo.Correo);
+
 
             await _emailService.EnviarAsync(
                 nuevo.Correo,

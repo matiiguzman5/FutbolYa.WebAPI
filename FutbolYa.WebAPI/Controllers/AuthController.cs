@@ -83,13 +83,38 @@ namespace FutbolYa.WebAPI.Controllers
                 var appUrl = _configuration["AppUrl"] ?? "https://futbolya.com";
                 var urlConfirmacion = $"{appUrl.TrimEnd('/')}/api/auth/confirmar-email?token={usuario.EmailConfirmToken}";
 
-            var cuerpoHtml = $@"
-                <p>Hola {usuario.Nombre},</p>
-                <p>Gracias por registrarte en <b>FutbolYa</b>.</p>
-                <p>Para activar tu cuenta, hace click en el siguiente enlace:</p>
-                <p><a href=""{urlConfirmacion}"">Confirmar cuenta</a></p>
-                <p>Si no fuiste vos, ignora este correo.</p>
-            ";
+                var cuerpoHtml = $@"
+                <div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#333;'>
+                    <h2 style='color:#007BFF;'>Confirmá tu cuenta en FutbolYa</h2>
+
+                    <p>Hola <strong>{usuario.Nombre}</strong>,</p>
+
+                    <p>Gracias por registrarte en <b>FutbolYa</b>.</p>
+                    <p>Tu cuenta está casi lista para que puedas buscar partidos, unirte a reservas y ¡jugar ya!.</p>
+
+                    <p>Para activarla, hacé clic en el siguiente botón:</p>
+
+                    <p>
+                        <a href='{urlConfirmacion}'
+                           style='display:inline-block;
+                                  padding:10px 20px;
+                                  background:#007BFF;
+                                  color:#fff;
+                                  border-radius:2rem;
+                                  text-decoration:none;
+                                  font-weight:bold;'>
+                            Confirmar cuenta
+                        </a>
+                    </p>
+
+                    <p>O copiá y pegá el siguiente enlace:</p>
+                    <p style='word-break:break-all;'>{urlConfirmacion}</p>
+
+                    <br/>
+                    <small style='color:#777;'>Si no creaste esta cuenta, ignorá este correo.</small><br/>
+                    <small style='color:#777;'>Por seguridad, nunca compartas este enlace.</small>
+                </div>";
+
 
                 try
                 {
@@ -250,12 +275,34 @@ namespace FutbolYa.WebAPI.Controllers
             var urlReset = $"{frontendUrl.TrimEnd('/')}/restablecer-password?token={token}";
 
             var cuerpoHtml = $@"
-                <p>Hola {usuario.Nombre},</p>
-                <p>Recibimos un pedido para restablecer la contraseña de tu cuenta en <b>FutbolYa</b>.</p>
-                <p>Si fuiste vos, hacé clic en el siguiente enlace para elegir una nueva contraseña:</p>
-                <p><a href=""{urlReset}"">Restablecer contraseña</a></p>
-                <p>Si no fuiste vos, podés ignorar este mensaje.</p>
-            ";
+            <div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#333;'>
+                <h2 style='color:#007BFF;'>Restablecé tu contraseña</h2>
+
+                <p>Hola <strong>{usuario.Nombre}</strong>,</p>
+
+                <p>Recibimos una solicitud para restablecer tu contraseña en <b>FutbolYa</b>.</p>
+                <p>Si fuiste vos, hacé clic en el siguiente botón:</p>
+
+                <p>
+                    <a href='{urlReset}'
+                       style='display:inline-block;
+                              padding:10px 20px;
+                              background:#007BFF;
+                              color:#fff;
+                              border-radius:2rem;
+                              text-decoration:none;
+                              font-weight:bold;'>
+                        Restablecer contraseña
+                    </a>
+                </p>
+
+                <p>Si no fuiste vos, ignorá este mensaje y te recomendamos cambiar tu contraseña por seguridad.</p>
+                <p>Como buena práctica, evitá usar la misma contraseña en otros sitios.</p>
+
+                <br/>
+                <small style='color:#777;'>Este enlace es válido por 30 minutos.</small>
+            </div>";
+
 
             try
             {
