@@ -7,6 +7,9 @@ using FutbolYa.WebAPI.Helpers;
 using System.Globalization;
 using System.Linq;
 using FutbolYa.WebAPI.DTOs;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+
 
 
 namespace FutbolYa.WebAPI.Controllers
@@ -419,23 +422,27 @@ namespace FutbolYa.WebAPI.Controllers
         [Authorize(Roles = "jugador")]
         public async Task<IActionResult> Unirse(int id)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
             var reserva = await _context.Reservas
-                .Include(r => r.Jugadores)
-                .ThenInclude(j => j.Usuario)
                 .Include(r => r.Cancha)
                 .FirstOrDefaultAsync(r => r.Id == id);
 
             if (reserva == null)
                 return NotFound("Reserva no encontrada");
 
-            // Verifica si ya está unido
-            if (reserva.Jugadores.Any(j => j.UsuarioId == userId))
-                return BadRequest("Ya estás unido a esta reserva");
+            // ✅ Chequeo robusto en la tabla puente
+            var yaInscripto = await _context.ReservaUsuarios
+                .AnyAsync(ru => ru.ReservaId == id && ru.UsuarioId == userId);
 
-            // Verifica límite según tipo de cancha
-            var tipo = reserva.Cancha.Tipo?.Trim().ToUpper();
+            if (yaInscripto)
+            {
+                // No lo tratamos como error: simplemente ya estaba unido
+                return Ok(new { mensaje = "Ya estabas unido a esta reserva", yaEstabasUnido = true });
+            }
 
+            // ✅ Capacidad según tipo de cancha
+            var tipo = reserva.Cancha?.Tipo?.Trim().ToUpper();
             int capacidadMaxima = tipo switch
             {
                 "F5" or "FUTBOL-5" => 10,
@@ -444,22 +451,33 @@ namespace FutbolYa.WebAPI.Controllers
                 _ => 10
             };
 
+            var jugadoresActuales = await _context.ReservaUsuarios
+                .CountAsync(ru => ru.ReservaId == id);
 
-            if (reserva.Jugadores.Count >= capacidadMaxima)
+            if (jugadoresActuales >= capacidadMaxima)
                 return BadRequest("La reserva ya alcanzó el máximo de jugadores");
 
-            // Agrega jugador a la reserva
-            var nuevoJugador = new ReservaUsuario
+            _context.ReservaUsuarios.Add(new ReservaUsuario
             {
                 ReservaId = id,
                 UsuarioId = userId
-            };
+            });
 
-            _context.ReservaUsuarios.Add(nuevoJugador);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (
+                ex.InnerException?.Message.Contains("PK_ReservaUsuarios") == true)
+            {
+                // Condición de carrera: alguien se anotó "entre medio"
+                return Ok(new { mensaje = "Ya estabas unido a esta reserva", yaEstabasUnido = true });
+            }
 
-            return Ok("Te uniste correctamente a la reserva");
+            return Ok(new { mensaje = "Te uniste correctamente a la reserva", yaEstabasUnido = false });
         }
+
+
 
         // GET: api/reservas/5/jugadores
         [HttpGet("{id}/jugadores")]
