@@ -85,8 +85,8 @@ namespace FutbolYa.WebAPI.Controllers
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier).Value);
 
-            var partidosJugados = await _context.PartidoUsuarios
-                .CountAsync(pu => pu.JugadoresId == userId);
+            var partidosJugados = await _context.ReservaUsuarios
+                 .CountAsync(ru => ru.UsuarioId == userId);
 
             var valoraciones = await _context.Calificaciones
                 .Where(c => c.EvaluadoId == userId)
@@ -160,7 +160,7 @@ namespace FutbolYa.WebAPI.Controllers
             {
                 Nombre = dto.Nombre,
                 Correo = dto.Correo,
-                Contrasena = dto.Contrasena,
+                Contrasena = BCrypt.Net.BCrypt.HashPassword(dto.Contrasena),
                 Rol = dto.Rol ?? "jugador",
                 EmailConfirmado = false
             };
@@ -270,7 +270,7 @@ namespace FutbolYa.WebAPI.Controllers
                 usuario.Posicion = dto.Posicion;
 
             if (!string.IsNullOrWhiteSpace(dto.Contrasena))
-                usuario.Contrasena = dto.Contrasena;
+                usuario.Contrasena = BCrypt.Net.BCrypt.HashPassword(dto.Contrasena);
 
             await _context.SaveChangesAsync();
 

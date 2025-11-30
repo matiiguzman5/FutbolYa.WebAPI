@@ -12,10 +12,10 @@ namespace FutbolYa.WebAPI.Models
         public Cancha Cancha { get; set; }
 
         [Required]
-        public DateTime FechaHora { get; set; } // Fecha + hora de inicio de la reserva
+        public DateTime FechaHora { get; set; }
 
         [Required]
-        public int DuracionMinutos { get; set; } // 60 minutos máximo
+        public int DuracionMinutos { get; set; }
 
         [Required]
         public string ClienteNombre { get; set; }
@@ -40,8 +40,10 @@ namespace FutbolYa.WebAPI.Models
         public string? Observaciones { get; set; }
 
         public int UsuarioEstablecimientoId { get; set; }
+
         [JsonIgnore]
         public Usuario UsuarioEstablecimiento { get; set; }
+
+        public ICollection<Calificacion> Calificaciones { get; set; } = new List<Calificacion>();
     }
 }
-

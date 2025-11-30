@@ -27,33 +27,33 @@ namespace FutbolYa.WebAPI.Controllers
             if (userId == dto.EvaluadoId)
                 return BadRequest("No podés evaluarte a vos mismo.");
 
-            var partido = await _context.Partidos
-                .Include(p => p.Jugadores)
-                .FirstOrDefaultAsync(p => p.Id == dto.PartidoId);
+            // Buscar la reserva
+            var reserva = await _context.Reservas
+                .Include(r => r.Jugadores)
+                .FirstOrDefaultAsync(r => r.Id == dto.ReservaId);
 
-            if (partido == null)
-                return NotFound("Partido no encontrado");
+            if (reserva == null)
+                return NotFound("Reserva no encontrada.");
 
-            // Validar que ambos jugaron ese partido
-            var jugoEvaluador = partido.Jugadores.Any(j => j.JugadoresId == userId);
-            var jugoEvaluado = partido.Jugadores.Any(j => j.JugadoresId == dto.EvaluadoId);
+            // Validar que ambos jugaron
+            bool jugoEvaluador = reserva.Jugadores.Any(u => u.UsuarioId == userId);
+            bool jugoEvaluado = reserva.Jugadores.Any(u => u.UsuarioId == dto.EvaluadoId);
 
             if (!jugoEvaluador || !jugoEvaluado)
-                return BadRequest("Solo podés calificar a jugadores que participaron en tu mismo partido.");
+                return BadRequest("Solo podés calificar a jugadores que participaron en la misma reserva.");
 
-            // Validar que no exista ya una calificación de este evaluador al mismo evaluado en este partido
-            var yaCalifico = await _context.Calificaciones
-                .AnyAsync(c => c.PartidoId == dto.PartidoId
+            // Validar que no exista ya una calificación repetida
+            bool yaCalifico = await _context.Calificaciones
+                .AnyAsync(c => c.ReservaId == dto.ReservaId
                             && c.EvaluadorId == userId
                             && c.EvaluadoId == dto.EvaluadoId);
 
             if (yaCalifico)
-                return BadRequest("Ya calificaste a este jugador en este partido.");
+                return BadRequest("Ya calificaste a este jugador en esta reserva.");
 
-            // Crear la calificación
             var calificacion = new Calificacion
             {
-                PartidoId = dto.PartidoId,
+                ReservaId = dto.ReservaId,
                 EvaluadorId = userId,
                 EvaluadoId = dto.EvaluadoId,
                 Puntaje = dto.Puntaje,
@@ -67,7 +67,6 @@ namespace FutbolYa.WebAPI.Controllers
             return Ok(new { mensaje = "Calificación creada correctamente" });
         }
 
-
         // GET: api/calificaciones/usuario/5
         [HttpGet("usuario/{id}")]
         public async Task<IActionResult> VerPorUsuario(int id)
@@ -80,7 +79,7 @@ namespace FutbolYa.WebAPI.Controllers
 
             var resultado = calificaciones.Select(c => new
             {
-                c.PartidoId,
+                c.ReservaId,
                 c.Puntaje,
                 c.Comentario,
                 c.Fecha,
@@ -89,23 +88,24 @@ namespace FutbolYa.WebAPI.Controllers
 
             return Ok(resultado);
         }
-        // GET: api/calificaciones/partido/1
-        [HttpGet("partido/{id}")]
-        public async Task<IActionResult> VerPorPartido(int id)
+
+        // GET: api/calificaciones/reserva/1
+        [HttpGet("reserva/{id}")]
+        public async Task<IActionResult> VerPorReserva(int id)
         {
             var calificaciones = await _context.Calificaciones
-                .Where(c => c.PartidoId == id)
+                .Where(c => c.ReservaId == id)
                 .Include(c => c.Evaluador)
                 .Include(c => c.Evaluado)
                 .OrderByDescending(c => c.Fecha)
                 .ToListAsync();
 
             if (!calificaciones.Any())
-                return Ok(new { mensaje = "No hay calificaciones para este partido." });
+                return Ok(new { mensaje = "No hay calificaciones para esta reserva." });
 
             var resultado = calificaciones.Select(c => new
             {
-                c.PartidoId,
+                c.ReservaId,
                 Evaluador = new { c.Evaluador.Id, c.Evaluador.Nombre },
                 Evaluado = new { c.Evaluado.Id, c.Evaluado.Nombre },
                 c.Puntaje,
@@ -125,17 +125,32 @@ namespace FutbolYa.WebAPI.Controllers
             var calificaciones = await _context.Calificaciones
                 .Where(c => c.EvaluadoId == userId)
                 .Include(c => c.Evaluador)
-                .Include(c => c.Partido)
+                .Include(c => c.Reserva)
+                    .ThenInclude(r => r.Cancha)
+                .Include(c => c.Reserva)
+                    .ThenInclude(r => r.UsuarioEstablecimiento)
                 .OrderByDescending(c => c.Fecha)
                 .ToListAsync();
 
+            if (calificaciones.Count == 0)
+                return Ok(new List<object>());
+
             var resultado = calificaciones.Select(c => new
             {
-                PartidoId = c.PartidoId,
-                PartidoInfo = $"{c.Partido.Ubicacion} - {c.Partido.Fecha:dd/MM/yyyy HH:mm}",
+                c.Id,
+                ReservaId = c.ReservaId,
+
+                ReservaInfo = string.Join(" — ", new[]
+                {
+            c.Reserva.Cancha?.Nombre,
+            c.Reserva.UsuarioEstablecimiento?.Ubicacion,
+            c.Reserva.FechaHora.ToString("dd/MM/yyyy HH:mm")
+        }.Where(s => !string.IsNullOrWhiteSpace(s))),
+
                 c.Puntaje,
                 c.Comentario,
-                c.Fecha,
+                Fecha = c.Fecha.ToString("yyyy-MM-dd HH:mm"),
+
                 Evaluador = new
                 {
                     c.Evaluador.Id,
@@ -145,11 +160,6 @@ namespace FutbolYa.WebAPI.Controllers
 
             return Ok(resultado);
         }
-
-
-
-
-
 
     }
 }

@@ -3,8 +3,9 @@
 public class Calificacion
 {
     public int Id { get; set; }
-    public int PartidoId { get; set; }
-    public Partido Partido { get; set; }
+
+    public int ReservaId { get; set; }
+    public Reserva Reserva { get; set; }
 
     public int EvaluadorId { get; set; }
     public Usuario Evaluador { get; set; }
@@ -16,3 +17,4 @@ public class Calificacion
     public string Comentario { get; set; }
     public DateTime Fecha { get; set; }
 }
+

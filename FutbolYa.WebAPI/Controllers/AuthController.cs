@@ -32,56 +32,68 @@ namespace FutbolYa.WebAPI.Controllers
         [HttpPost("registro")]
         public async Task<IActionResult> Registrar([FromBody] RegisterDTO dto)
         {
+            // ===============================
+            // VALIDACIONES BÁSICAS
+            // ===============================
             if (string.IsNullOrWhiteSpace(dto.Nombre) ||
                 string.IsNullOrWhiteSpace(dto.Correo))
-            {
                 return BadRequest("Nombre y correo son obligatorios.");
-            }
 
             if (string.IsNullOrWhiteSpace(dto.Contrasena))
-            {
                 return BadRequest("La contraseña es obligatoria.");
-            }
 
             if (dto.Contrasena != dto.ConfirmarContrasena)
-            {
                 return BadRequest("Las contraseñas no coinciden.");
-            }
 
-            var existe = await _context.Usuarios
-                .AnyAsync(u => u.Correo == dto.Correo);
-
+            // ===============================
+            // VERIFICAR SI EL CORREO YA EXISTE
+            // ===============================
+            var existe = await _context.Usuarios.AnyAsync(u => u.Correo == dto.Correo);
             if (existe)
-            {
                 return BadRequest("Ya existe un usuario con ese correo.");
-            }
 
+            // ===============================
+            // CONFIGURACIÓN DE EMAIL DE CONFIRMACIÓN
+            // ===============================
             var requiereConfirmacion = _configuration.GetValue<bool>("Auth:RequireEmailConfirmation", true);
             var smtpEnabled = _configuration.GetValue<bool>("Smtp:Enabled", true);
             var enviarMailConfirmacion = requiereConfirmacion && smtpEnabled;
 
+            // ===============================
+            // CREAR USUARIO — CONTRASEÑA HASHEADA ✨
+            // ===============================
             var usuario = new Usuario
             {
                 Nombre = dto.Nombre,
                 Correo = dto.Correo,
-                Contrasena = dto.Contrasena,
+
+                // 🔥 Hashear contraseña con BCrypt
+                Contrasena = BCrypt.Net.BCrypt.HashPassword(dto.Contrasena),
+
                 Rol = "jugador",
                 EmailConfirmado = !enviarMailConfirmacion
             };
 
+            // Token de confirmación (si corresponde)
             if (enviarMailConfirmacion)
             {
-                usuario.EmailConfirmToken = Guid.NewGuid().ToString();
+                usuario.EmailConfirmToken = Guid.NewGuid().ToString("N");
                 usuario.EmailConfirmTokenExpira = DateTime.UtcNow.AddHours(24);
             }
 
+            // Guardar usuario
             _context.Usuarios.Add(usuario);
             await _context.SaveChangesAsync();
 
+            // ===============================
+            // ENVIAR EMAIL (si corresponde)
+            // ===============================
             if (enviarMailConfirmacion && usuario.EmailConfirmToken != null)
             {
                 var appUrl = _configuration["AppUrl"] ?? "https://futbolya.com";
-                var urlConfirmacion = $"{appUrl.TrimEnd('/')}/api/auth/confirmar-email?token={usuario.EmailConfirmToken}";
+
+                var urlConfirmacion =
+                    $"{appUrl.TrimEnd('/')}/api/auth/confirmar-email?token={usuario.EmailConfirmToken}";
 
                 var cuerpoHtml = $@"
                 <div style='font-family:Arial,sans-serif;max-width:600px;margin:auto;color:#333;'>
@@ -90,9 +102,9 @@ namespace FutbolYa.WebAPI.Controllers
                     <p>Hola <strong>{usuario.Nombre}</strong>,</p>
 
                     <p>Gracias por registrarte en <b>FutbolYa</b>.</p>
-                    <p>Tu cuenta está casi lista para que puedas buscar partidos, unirte a reservas y ¡jugar ya!.</p>
+                    <p>Tu cuenta está casi lista. Solo falta confirmarla.</p>
 
-                    <p>Para activarla, hacé clic en el siguiente botón:</p>
+                    <p>Hacé clic en el siguiente botón:</p>
 
                     <p>
                         <a href='{urlConfirmacion}'
@@ -107,14 +119,12 @@ namespace FutbolYa.WebAPI.Controllers
                         </a>
                     </p>
 
-                    <p>O copiá y pegá el siguiente enlace:</p>
+                    <p>O copiá este enlace:</p>
                     <p style='word-break:break-all;'>{urlConfirmacion}</p>
 
                     <br/>
-                    <small style='color:#777;'>Si no creaste esta cuenta, ignorá este correo.</small><br/>
-                    <small style='color:#777;'>Por seguridad, nunca compartas este enlace.</small>
+                    <small style='color:#777;'>Si no creaste esta cuenta, ignorá este correo.</small>
                 </div>";
-
 
                 try
                 {
@@ -127,15 +137,21 @@ namespace FutbolYa.WebAPI.Controllers
                 catch (Exception ex)
                 {
                     Console.WriteLine("ERROR SMTP: " + ex.Message);
+
+                    // Si falla el email → borrar usuario
                     _context.Usuarios.Remove(usuario);
                     await _context.SaveChangesAsync();
-                    return StatusCode(500, "Error enviando mail: " + ex.Message);
+
+                    return StatusCode(500, "Error enviando el correo de confirmación.");
                 }
             }
 
+            // ===============================
+            // RESPUESTA
+            // ===============================
             var mensaje = enviarMailConfirmacion
                 ? "Usuario registrado correctamente. Revisa tu correo para confirmar la cuenta."
-                : "Usuario registrado correctamente. Tu cuenta ya esta activa.";
+                : "Usuario registrado correctamente. Tu cuenta ya está activa.";
 
             return Ok(new
             {
@@ -186,23 +202,38 @@ namespace FutbolYa.WebAPI.Controllers
         public async Task<IActionResult> Login([FromBody] LoginDTO login)
         {
             if (string.IsNullOrWhiteSpace(login.Contrasena))
-            {
                 return BadRequest("La contraseña es obligatoria.");
-            }
 
             var usuario = await _context.Usuarios
-                .FirstOrDefaultAsync(u =>
-                    u.Correo == login.Correo &&
-                    u.Contrasena == login.Contrasena);
+                .FirstOrDefaultAsync(u => u.Correo == login.Correo);
 
             if (usuario == null)
-            {
                 return Unauthorized("Correo o contraseña incorrectos.");
-            }
 
             if (!usuario.EmailConfirmado)
-            {
                 return BadRequest("Debes confirmar tu correo antes de iniciar sesión.");
+
+            bool esHash = usuario.Contrasena.StartsWith("$2");
+
+            if (!esHash)
+            {
+                
+                if (usuario.Contrasena == login.Contrasena)
+                {
+                    
+                    usuario.Contrasena = BCrypt.Net.BCrypt.HashPassword(login.Contrasena);
+                    await _context.SaveChangesAsync();
+                }
+                else
+                {
+                    return Unauthorized("Correo o contraseña incorrectos.");
+                }
+            }
+            else
+            {
+                bool valid = BCrypt.Net.BCrypt.Verify(login.Contrasena, usuario.Contrasena);
+                if (!valid)
+                    return Unauthorized("Correo o contraseña incorrectos.");
             }
 
             var key = _configuration["Jwt:Key"];
@@ -214,6 +245,7 @@ namespace FutbolYa.WebAPI.Controllers
                 usuario = new { usuario.Id, usuario.Nombre, usuario.Rol }
             });
         }
+
 
         // POST: api/auth/restablecer-password
         [HttpPost("restablecer-password")]
@@ -239,7 +271,7 @@ namespace FutbolYa.WebAPI.Controllers
                 return BadRequest("Token inválido o expirado.");
             }
 
-            usuario.Contrasena = dto.NuevaContrasena;
+            usuario.Contrasena = BCrypt.Net.BCrypt.HashPassword(dto.NuevaContrasena);
             usuario.ResetPasswordToken = null;
             usuario.ResetPasswordTokenExpira = null;
 
