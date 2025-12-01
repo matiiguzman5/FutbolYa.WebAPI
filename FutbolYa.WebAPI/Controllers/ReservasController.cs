@@ -100,21 +100,29 @@ namespace FutbolYa.WebAPI.Controllers
             if (reserva == null)
                 return NotFound("Reserva no encontrada.");
 
-            
             var creador = await _context.Usuarios.FirstOrDefaultAsync(u => u.Correo == reserva.ClienteEmail);
             if (creador == null || creador.Id != userId)
                 return Forbid("No tenés permiso para cancelar esta reserva.");
 
-            
             if (reserva.Jugadores.Any())
                 return BadRequest("No se puede cancelar la reserva porque hay jugadores anotados.");
 
-            
+            // 🧹 BORRAR MENSAJES DE LA RESERVA ANTES DE ELIMINARLA
+            var mensajesReserva = await _context.Mensajes
+                .Where(m => m.ReservaId == reserva.Id)
+                .ToListAsync();
+
+            if (mensajesReserva.Any())
+            {
+                _context.Mensajes.RemoveRange(mensajesReserva);
+            }
+
             _context.Reservas.Remove(reserva);
             await _context.SaveChangesAsync();
 
             return Ok("Reserva cancelada correctamente.");
         }
+
 
         // POST: api/reservas/cancha/{canchaId}
         // Crea una reserva de 60' pasando solo fecha/hora + observaciones.
@@ -631,16 +639,29 @@ namespace FutbolYa.WebAPI.Controllers
 
             if (!quedanJugadores)
             {
+                // 🧹 BORRAR MENSAJES DE ESA RESERVA
+                var mensajesReserva = await _context.Mensajes
+                    .Where(m => m.ReservaId == reservaId)
+                    .ToListAsync();
+
+                if (mensajesReserva.Any())
+                {
+                    _context.Mensajes.RemoveRange(mensajesReserva);
+                }
+
                 var reserva = await _context.Reservas.FindAsync(reservaId);
                 if (reserva != null)
                 {
                     _context.Reservas.Remove(reserva);
-                    await _context.SaveChangesAsync();
                 }
+
+                await _context.SaveChangesAsync();
             }
 
             return Ok("Saliste de la reserva.");
         }
+
+
 
         [HttpGet("mias")]
         [Authorize(Roles = "establecimiento")]
