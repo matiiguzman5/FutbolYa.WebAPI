@@ -6,7 +6,6 @@ namespace FutbolYa.WebAPI.Models
     {
         public int Id { get; set; }
 
-        // 🔹 Chat por reserva
         public int ReservaId { get; set; }
         public Reserva Reserva { get; set; }
 

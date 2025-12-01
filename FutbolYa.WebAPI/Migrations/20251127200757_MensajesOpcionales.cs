@@ -35,7 +35,7 @@ namespace FutbolYa.WebAPI.Migrations
                 column: "ReservaId",
                 principalTable: "Reservas",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+                onDelete: ReferentialAction.NoAction); // <- CAMBIO IMPORTANTE
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)

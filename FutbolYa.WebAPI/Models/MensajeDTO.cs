@@ -2,10 +2,7 @@
 {
     public class MensajeDTO
     {
-        public int ReservaId { get; set; }   // para chat de reserva
-        public int PartidoId { get; set; }   // para chat de partido
-        public string Contenido { get; set; }
+        public int ReservaId { get; set; }   // ID de la reserva del chat
+        public string Contenido { get; set; } // Mensaje enviado
     }
-
-
 }
