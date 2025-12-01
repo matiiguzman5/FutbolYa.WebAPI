@@ -1,4 +1,5 @@
-﻿using FutbolYa.WebAPI.Models;
+﻿using System.Security.Claims;
+using FutbolYa.WebAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,26 +22,45 @@ namespace FutbolYa.WebAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> EnviarMensaje([FromBody] MensajeDTO dto)
         {
-            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Contenido))
+                return BadRequest("El contenido del mensaje no puede estar vacío.");
 
-            var reservaExiste = await _context.Reservas.AnyAsync(r => r.Id == dto.ReservaId);
-            var usuarioExiste = await _context.Usuarios.AnyAsync(u => u.Id == int.Parse(userId));
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+                return Unauthorized("Token inválido.");
 
-            if (!reservaExiste || !usuarioExiste)
-                return BadRequest("Reserva o usuario inválido.");
+            var reserva = await _context.Reservas
+                .Include(r => r.Jugadores)
+                .FirstOrDefaultAsync(r => r.Id == dto.ReservaId);
+
+            if (reserva == null)
+                return BadRequest("La reserva no existe.");
+
+            // 🔐 Opcional: solo dejar chatear a quien está inscripto
+            var estaInscripto = reserva.Jugadores.Any(j => j.UsuarioId == userId);
+            if (!estaInscripto)
+                return Forbid("No estás inscripto en esta reserva.");
 
             var mensaje = new Mensaje
             {
                 ReservaId = dto.ReservaId,
-                UsuarioId = int.Parse(userId),
+                UsuarioId = userId,
                 Contenido = dto.Contenido,
                 Fecha = DateTime.Now
             };
 
-            _context.Mensajes.Add(mensaje);
-            await _context.SaveChangesAsync();
+            try
+            {
+                _context.Mensajes.Add(mensaje);
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex)
+            {
+                // Acá podés loguear ex.InnerException?.Message para ver si vuelve a aparecer algo de FK
+                Console.WriteLine("Error al guardar mensaje: " + ex.InnerException?.Message ?? ex.Message);
+                return StatusCode(500, "Error al guardar el mensaje.");
+            }
 
-            // devolvemos el mensaje con usuario incluido
             var mensajeConUsuario = await _context.Mensajes
                 .Include(m => m.Usuario)
                 .FirstOrDefaultAsync(m => m.Id == mensaje.Id);

@@ -97,6 +97,32 @@ namespace FutbolYa.WebAPI.Models
                 .WithMany(r => r.DatosTarjetas)
                 .HasForeignKey(dt => dt.ReservaId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+
+            modelBuilder.Entity<PartidoUsuario>()
+                .ToTable("PartidoUsuario"); 
+
+            modelBuilder.Entity<PartidoUsuario>()
+                .HasKey(pu => new { pu.PartidosId, pu.JugadoresId });
+
+            modelBuilder.Entity<PartidoUsuario>()
+                .HasOne(pu => pu.Partido)
+                .WithMany(p => p.Jugadores)
+                .HasForeignKey(pu => pu.PartidosId);
+
+            modelBuilder.Entity<PartidoUsuario>()
+                .HasOne(pu => pu.Jugador)
+                .WithMany()
+                .HasForeignKey(pu => pu.JugadoresId);
+
+
+            // 🔹 Relación opcional Mensaje–Reserva
+            modelBuilder.Entity<Mensaje>()
+                .HasOne(m => m.Reserva)
+                .WithMany(r => r.Mensajes)        // o .WithMany() si no tenés la colección
+                .HasForeignKey(m => m.ReservaId)
+                .OnDelete(DeleteBehavior.Cascade);
+
         }
     }
 }
