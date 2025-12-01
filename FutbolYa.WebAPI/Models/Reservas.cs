@@ -29,6 +29,7 @@ namespace FutbolYa.WebAPI.Models
         public bool SedeConfirmoTransferencia { get; set; }
 
         public ICollection<ReservaUsuario> Jugadores { get; set; } = new List<ReservaUsuario>();
+        public ICollection<Mensaje> Mensajes { get; set; } = new List<Mensaje>();
 
         [JsonIgnore]
         public ICollection<DatosTarjeta> DatosTarjetas { get; set; } = new List<DatosTarjeta>();
