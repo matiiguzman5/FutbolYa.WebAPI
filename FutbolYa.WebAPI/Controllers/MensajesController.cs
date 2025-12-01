@@ -80,5 +80,30 @@ namespace FutbolYa.WebAPI.Controllers
 
             return Ok(mensajes);
         }
+
+        // DELETE: api/mensajes/limpiar-viejos
+        [HttpDelete("limpiar-viejos")]
+        [Authorize(Roles = "administrador")]
+        public async Task<IActionResult> LimpiarMensajesViejos()
+        {
+            // límite: reservas que ya pasaron hace más de 7 días
+            var limite = DateTime.Now.AddDays(-7);
+
+            var mensajesAntiguos = await _context.Mensajes
+                .Include(m => m.Reserva)
+                .Where(m => m.Reserva != null && m.Reserva.FechaHora < limite)
+                .ToListAsync();
+
+            if (!mensajesAntiguos.Any())
+            {
+                return Ok(new { eliminados = 0, mensaje = "No había mensajes para eliminar." });
+            }
+
+            _context.Mensajes.RemoveRange(mensajesAntiguos);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { eliminados = mensajesAntiguos.Count });
+        }
+
     }
 }
